@@ -51,8 +51,18 @@ function TicketDetailPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("tickets")
-        .select("*, clients(company, contact_name, phone, address), profiles:assigned_to(full_name, email, specialty)")
+        .select("*, clients(company, contact_name, phone, address)")
         .eq("id", id).maybeSingle();
+      return data;
+    },
+  });
+
+  const { data: assignedProfile } = useQuery({
+    queryKey: ["ticket-assignee", ticket?.assigned_to],
+    enabled: !!ticket?.assigned_to,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles")
+        .select("full_name, email, specialty").eq("id", ticket!.assigned_to!).maybeSingle();
       return data;
     },
   });
@@ -195,8 +205,8 @@ function TicketDetailPage() {
         <aside className="space-y-4">
           <div className="rounded-xl border border-border bg-surface p-4 shadow-soft">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Responsável</h3>
-            <div className="mt-2 text-sm font-medium">{ticket.profiles?.full_name ?? "Não atribuído"}</div>
-            <div className="text-xs text-muted-foreground">{ticket.profiles?.specialty ?? ticket.profiles?.email}</div>
+            <div className="mt-2 text-sm font-medium">{assignedProfile?.full_name ?? "Não atribuído"}</div>
+            <div className="text-xs text-muted-foreground">{assignedProfile?.specialty ?? assignedProfile?.email}</div>
           </div>
 
           <div className="rounded-xl border border-border bg-surface p-4 shadow-soft">
