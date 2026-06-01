@@ -23,6 +23,7 @@ import { Route as AppClientesRouteImport } from './routes/_app/clientes'
 import { Route as AppChamadosRouteImport } from './routes/_app/chamados'
 import { Route as AppCadastrosPendentesRouteImport } from './routes/_app/cadastros-pendentes'
 import { Route as AppTecnicosNovoRouteImport } from './routes/_app/tecnicos.novo'
+import { Route as AppChamadosIdRouteImport } from './routes/_app/chamados.$id'
 import { Route as AppTecnicosIdCrachaRouteImport } from './routes/_app/tecnicos.$id.cracha'
 
 const LoginRoute = LoginRouteImport.update({
@@ -94,6 +95,11 @@ const AppTecnicosNovoRoute = AppTecnicosNovoRouteImport.update({
   path: '/novo',
   getParentRoute: () => AppTecnicosRoute,
 } as any)
+const AppChamadosIdRoute = AppChamadosIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppChamadosRoute,
+} as any)
 const AppTecnicosIdCrachaRoute = AppTecnicosIdCrachaRouteImport.update({
   id: '/$id/cracha',
   path: '/$id/cracha',
@@ -104,7 +110,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/cadastros-pendentes': typeof AppCadastrosPendentesRoute
-  '/chamados': typeof AppChamadosRoute
+  '/chamados': typeof AppChamadosRouteWithChildren
   '/clientes': typeof AppClientesRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/dashboard': typeof AppDashboardRoute
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/meu-cracha': typeof AppMeuCrachaRoute
   '/relatorios': typeof AppRelatoriosRoute
   '/tecnicos': typeof AppTecnicosRouteWithChildren
+  '/chamados/$id': typeof AppChamadosIdRoute
   '/tecnicos/novo': typeof AppTecnicosNovoRoute
   '/tecnicos/$id/cracha': typeof AppTecnicosIdCrachaRoute
 }
@@ -120,7 +127,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/cadastros-pendentes': typeof AppCadastrosPendentesRoute
-  '/chamados': typeof AppChamadosRoute
+  '/chamados': typeof AppChamadosRouteWithChildren
   '/clientes': typeof AppClientesRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/dashboard': typeof AppDashboardRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/meu-cracha': typeof AppMeuCrachaRoute
   '/relatorios': typeof AppRelatoriosRoute
   '/tecnicos': typeof AppTecnicosRouteWithChildren
+  '/chamados/$id': typeof AppChamadosIdRoute
   '/tecnicos/novo': typeof AppTecnicosNovoRoute
   '/tecnicos/$id/cracha': typeof AppTecnicosIdCrachaRoute
 }
@@ -138,7 +146,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/cadastros-pendentes': typeof AppCadastrosPendentesRoute
-  '/_app/chamados': typeof AppChamadosRoute
+  '/_app/chamados': typeof AppChamadosRouteWithChildren
   '/_app/clientes': typeof AppClientesRoute
   '/_app/configuracoes': typeof AppConfiguracoesRoute
   '/_app/dashboard': typeof AppDashboardRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/_app/meu-cracha': typeof AppMeuCrachaRoute
   '/_app/relatorios': typeof AppRelatoriosRoute
   '/_app/tecnicos': typeof AppTecnicosRouteWithChildren
+  '/_app/chamados/$id': typeof AppChamadosIdRoute
   '/_app/tecnicos/novo': typeof AppTecnicosNovoRoute
   '/_app/tecnicos/$id/cracha': typeof AppTecnicosIdCrachaRoute
 }
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/meu-cracha'
     | '/relatorios'
     | '/tecnicos'
+    | '/chamados/$id'
     | '/tecnicos/novo'
     | '/tecnicos/$id/cracha'
   fileRoutesByTo: FileRoutesByTo
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
     | '/meu-cracha'
     | '/relatorios'
     | '/tecnicos'
+    | '/chamados/$id'
     | '/tecnicos/novo'
     | '/tecnicos/$id/cracha'
   id:
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/_app/meu-cracha'
     | '/_app/relatorios'
     | '/_app/tecnicos'
+    | '/_app/chamados/$id'
     | '/_app/tecnicos/novo'
     | '/_app/tecnicos/$id/cracha'
   fileRoutesById: FileRoutesById
@@ -308,6 +320,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTecnicosNovoRouteImport
       parentRoute: typeof AppTecnicosRoute
     }
+    '/_app/chamados/$id': {
+      id: '/_app/chamados/$id'
+      path: '/$id'
+      fullPath: '/chamados/$id'
+      preLoaderRoute: typeof AppChamadosIdRouteImport
+      parentRoute: typeof AppChamadosRoute
+    }
     '/_app/tecnicos/$id/cracha': {
       id: '/_app/tecnicos/$id/cracha'
       path: '/$id/cracha'
@@ -317,6 +336,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AppChamadosRouteChildren {
+  AppChamadosIdRoute: typeof AppChamadosIdRoute
+}
+
+const AppChamadosRouteChildren: AppChamadosRouteChildren = {
+  AppChamadosIdRoute: AppChamadosIdRoute,
+}
+
+const AppChamadosRouteWithChildren = AppChamadosRoute._addFileChildren(
+  AppChamadosRouteChildren,
+)
 
 interface AppTecnicosRouteChildren {
   AppTecnicosNovoRoute: typeof AppTecnicosNovoRoute
@@ -334,7 +365,7 @@ const AppTecnicosRouteWithChildren = AppTecnicosRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppCadastrosPendentesRoute: typeof AppCadastrosPendentesRoute
-  AppChamadosRoute: typeof AppChamadosRoute
+  AppChamadosRoute: typeof AppChamadosRouteWithChildren
   AppClientesRoute: typeof AppClientesRoute
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
   AppDashboardRoute: typeof AppDashboardRoute
@@ -347,7 +378,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppCadastrosPendentesRoute: AppCadastrosPendentesRoute,
-  AppChamadosRoute: AppChamadosRoute,
+  AppChamadosRoute: AppChamadosRouteWithChildren,
   AppClientesRoute: AppClientesRoute,
   AppConfiguracoesRoute: AppConfiguracoesRoute,
   AppDashboardRoute: AppDashboardRoute,

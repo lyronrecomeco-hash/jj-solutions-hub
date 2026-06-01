@@ -4,7 +4,6 @@ import {
   Ticket,
   Users,
   Building2,
-  UserPlus,
   BarChart3,
   MessageSquare,
   Settings,
@@ -46,7 +45,6 @@ const techSelfItems: NavItem[] = [
 
 const techManagementItems: NavItem[] = [
   { title: "Equipe Técnica", url: "/tecnicos", icon: Users },
-  { title: "Criar Técnico", url: "/tecnicos/novo", icon: UserPlus },
   { title: "Cadastros Pendentes", url: "/cadastros-pendentes", icon: ClipboardList },
   { title: "Permissões & Vínculos", url: "/tecnicos/permissoes", icon: ShieldCheck },
   { title: "Equipamentos", url: "/tecnicos/equipamentos", icon: Wrench },
