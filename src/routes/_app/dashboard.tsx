@@ -102,10 +102,15 @@ function DashboardPage() {
           <CardContent>
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                <XAxis dataKey="day" stroke="var(--color-muted-foreground)" fontSize={11} />
-                <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
-                <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                <XAxis dataKey="day" stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip
+                  cursor={{ stroke: "var(--color-border)" }}
+                  contentStyle={{ background: "var(--color-popover)", color: "var(--color-popover-foreground)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12, boxShadow: "var(--shadow-floating)" }}
+                  labelStyle={{ color: "var(--color-foreground)", fontWeight: 600 }}
+                  itemStyle={{ color: "var(--color-popover-foreground)" }}
+                />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Line type="monotone" dataKey="abertos" stroke="var(--color-chart-1)" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="resolvidos" stroke="var(--color-chart-3)" strokeWidth={2} dot={false} />
@@ -127,7 +132,10 @@ function DashboardPage() {
                     <Cell key={i} fill={`var(--color-chart-${(i % 5) + 1})`} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }} />
+                <Tooltip
+                  contentStyle={{ background: "var(--color-popover)", color: "var(--color-popover-foreground)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12, boxShadow: "var(--shadow-floating)" }}
+                  itemStyle={{ color: "var(--color-popover-foreground)" }}
+                />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
               </PieChart>
             </ResponsiveContainer>
@@ -144,10 +152,15 @@ function DashboardPage() {
           <CardContent>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={productivityData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} />
-                <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
-                <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip
+                  cursor={{ fill: "var(--color-accent)", opacity: 0.35, radius: 6 }}
+                  contentStyle={{ background: "var(--color-popover)", color: "var(--color-popover-foreground)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12, boxShadow: "var(--shadow-floating)" }}
+                  labelStyle={{ color: "var(--color-foreground)", fontWeight: 600 }}
+                  itemStyle={{ color: "var(--color-popover-foreground)" }}
+                />
                 <Bar dataKey="resolvidos" fill="var(--color-chart-1)" radius={[6, 6, 0, 0]} maxBarSize={42} />
               </BarChart>
             </ResponsiveContainer>

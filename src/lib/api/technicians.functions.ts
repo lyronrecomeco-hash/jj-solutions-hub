@@ -30,11 +30,7 @@ const createSchema = z.object({
 
 async function assertAdmin(userId: string) {
   const { data, error } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("role", "admin")
-    .maybeSingle();
+    .from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Apenas administradores podem executar esta ação.");
 }
@@ -54,35 +50,19 @@ export const createTechnician = createServerFn({ method: "POST" })
     if (authErr || !created.user) throw new Error(authErr?.message ?? "Falha ao criar usuário");
 
     const uid = created.user.id;
-
-    const profilePayload = {
-      full_name: data.full_name,
-      email: data.email,
-      phone: data.phone,
-      cpf: data.cpf,
-      rg: data.rg,
-      birth_date: data.birth_date,
-      job_title: data.job_title,
-      specialty: data.specialty,
-      registration_code: data.registration_code,
-      cep: data.cep,
-      address: data.address,
-      address_number: data.address_number,
-      address_complement: data.address_complement,
-      neighborhood: data.neighborhood,
-      city: data.city,
-      state: data.state,
-      employment_type: data.employment_type,
-    };
-
-    const { error: profErr } = await supabaseAdmin
-      .from("profiles")
-      .upsert({ id: uid, ...profilePayload }, { onConflict: "id" });
+    const { error: profErr } = await supabaseAdmin.from("profiles").upsert({
+      id: uid,
+      full_name: data.full_name, email: data.email,
+      phone: data.phone, cpf: data.cpf, rg: data.rg, birth_date: data.birth_date,
+      job_title: data.job_title, specialty: data.specialty, registration_code: data.registration_code,
+      cep: data.cep, address: data.address, address_number: data.address_number,
+      address_complement: data.address_complement, neighborhood: data.neighborhood,
+      city: data.city, state: data.state, employment_type: data.employment_type,
+    }, { onConflict: "id" });
     if (profErr) throw new Error(profErr.message);
 
     const { error: roleErr } = await supabaseAdmin
-      .from("user_roles")
-      .upsert({ user_id: uid, role: data.role }, { onConflict: "user_id,role" });
+      .from("user_roles").upsert({ user_id: uid, role: data.role }, { onConflict: "user_id,role" });
     if (roleErr) throw new Error(roleErr.message);
 
     return { ok: true, user_id: uid };
@@ -100,14 +80,44 @@ export const reviewTechnicianSignup = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const { error } = await supabaseAdmin
-      .from("technician_signups")
-      .update({
+      .from("technician_signups").update({
         status: data.decision,
         rejection_reason: data.reason ?? null,
         reviewed_by: context.userId,
         reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", data.signup_id);
+      }).eq("id", data.signup_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const deleteSchema = z.object({ user_id: z.string().uuid() });
+export const deleteTechnician = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => deleteSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    if (data.user_id === context.userId) throw new Error("Você não pode excluir a si mesmo.");
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const updateSchema = z.object({
+  id: z.string().uuid(),
+  full_name: z.string().min(2).max(120),
+  phone: z.string().max(40).optional().nullable(),
+  job_title: z.string().max(80).optional().nullable(),
+  specialty: z.string().max(120).optional().nullable(),
+  registration_code: z.string().max(40).optional().nullable(),
+  employment_type: z.enum(employmentTypes),
+});
+export const updateTechnician = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => updateSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { id, ...rest } = data;
+    const { error } = await supabaseAdmin.from("profiles").update(rest).eq("id", id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
