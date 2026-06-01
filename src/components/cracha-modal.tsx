@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, RotateCw, X, ShieldCheck } from "lucide-react";
+import { Download, RotateCw, ShieldCheck } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -33,21 +33,12 @@ export function CrachaModal({ tech, open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-2xl overflow-hidden border-0 bg-transparent p-0 shadow-none"
-        showCloseButton={false}
+        className="max-w-2xl overflow-hidden border-0 bg-transparent p-0 shadow-none [&>button]:text-white/70 [&>button]:hover:text-white"
       >
         <div className="relative rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-8 shadow-2xl">
           {/* glow */}
           <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-50"
             style={{ background: "radial-gradient(circle at 50% 30%, oklch(0.55 0.16 258 / 0.35), transparent 60%)" }} />
-
-          <button
-            onClick={() => onOpenChange(false)}
-            className="absolute right-4 top-4 z-10 rounded-md p-1.5 text-white/70 hover:bg-white/10 hover:text-white"
-            aria-label="Fechar"
-          >
-            <X className="h-4 w-4" />
-          </button>
 
           <div className="relative">
             <div className="mb-6 text-center text-white">
