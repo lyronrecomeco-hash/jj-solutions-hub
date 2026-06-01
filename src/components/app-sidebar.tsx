@@ -1,32 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard,
-  Ticket,
-  Users,
-  Building2,
-  BarChart3,
-  MessageSquare,
-  Settings,
-  ScrollText,
-  LogOut,
-  IdCard,
-  UserCog,
-  ShieldCheck,
-  Wrench,
-  ClipboardList,
+  LayoutDashboard, Ticket, Users, Building2, BarChart3, MessageSquare,
+  Settings, ScrollText, LogOut, IdCard, ClipboardList, UserCog,
 } from "lucide-react";
 
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
+  SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { JJLogo } from "@/components/jj-logo";
 import { useAuth } from "@/hooks/use-auth";
@@ -41,19 +21,17 @@ const operationItems: NavItem[] = [
 
 const techSelfItems: NavItem[] = [
   { title: "Meu Crachá", url: "/meu-cracha", icon: IdCard },
+  { title: "Mensagens", url: "/mensagens", icon: MessageSquare },
 ];
 
 const techManagementItems: NavItem[] = [
   { title: "Equipe Técnica", url: "/tecnicos", icon: Users },
   { title: "Cadastros Pendentes", url: "/cadastros-pendentes", icon: ClipboardList },
-  { title: "Permissões & Vínculos", url: "/tecnicos/permissoes", icon: ShieldCheck },
-  { title: "Equipamentos", url: "/tecnicos/equipamentos", icon: Wrench },
+  { title: "Atribuição", url: "/atribuicao", icon: UserCog },
 ];
 
 const customerItems: NavItem[] = [
   { title: "Clientes", url: "/clientes", icon: Building2 },
-  { title: "Criar Chamado", url: "/chamados/novo", icon: Ticket },
-  { title: "Atribuição", url: "/chamados/atribuicao", icon: UserCog },
 ];
 
 const analysisItems: NavItem[] = [
@@ -71,8 +49,7 @@ export function AppSidebar() {
   const { signOut, isAdmin, isStaff } = useAuth();
   const navigate = useNavigate();
 
-  const isActive = (url: string) =>
-    pathname === url || pathname.startsWith(url + "/");
+  const isActive = (url: string) => pathname === url || pathname.startsWith(url + "/");
 
   async function handleLogout() {
     await signOut();
@@ -102,18 +79,14 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="px-3 py-3.5">
-        <div className="group-data-[collapsible=icon]:hidden">
-          <JJLogo />
-        </div>
-        <div className="hidden justify-center group-data-[collapsible=icon]:flex">
-          <JJLogo showText={false} />
-        </div>
+        <div className="group-data-[collapsible=icon]:hidden"><JJLogo /></div>
+        <div className="hidden justify-center group-data-[collapsible=icon]:flex"><JJLogo showText={false} /></div>
       </SidebarHeader>
       <SidebarContent className="px-1">
         {renderGroup("Operação", operationItems)}
         {!isStaff && renderGroup("Meu Espaço", techSelfItems)}
         {isStaff && renderGroup("Gestão de Técnicos", techManagementItems)}
-        {isStaff && renderGroup("Clientes & Atendimento", customerItems)}
+        {isStaff && renderGroup("Clientes", customerItems)}
         {isStaff && renderGroup("Análise", analysisItems)}
         {isAdmin && renderGroup("Sistema", systemItems)}
       </SidebarContent>

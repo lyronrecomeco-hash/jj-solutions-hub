@@ -1,58 +1,40 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  Plus, Search, IdCard, Pencil, Trash2, Eye, BarChart3, Mail, Phone, Loader2,
-} from "lucide-react";
+import { Plus, Search, IdCard, Pencil, Trash2, Eye, BarChart3, Mail, Phone, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CrachaModal } from "@/components/cracha-modal";
+import { TechnicianFormSheet } from "@/components/technician-form-sheet";
+import { TechnicianViewSheet } from "@/components/technician-view-sheet";
 import { deleteTechnician, updateTechnician } from "@/lib/api/technicians.functions";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_app/tecnicos")({ component: TechniciansPage });
 
 type Row = {
-  id: string;
-  full_name: string;
-  email: string;
-  phone: string | null;
-  specialty: string | null;
-  job_title: string | null;
-  registration_code: string | null;
-  employment_type: "field" | "clt" | "pj" | "internal";
-  photo_url: string | null;
-  status: string;
+  id: string; full_name: string; email: string; phone: string | null;
+  specialty: string | null; job_title: string | null; registration_code: string | null;
+  employment_type: "field" | "clt" | "pj" | "internal"; photo_url: string | null; status: string;
 };
 
 const employmentLabel: Record<Row["employment_type"], { label: string; cls: string }> = {
-  field:    { label: "Field",  cls: "bg-info/15 text-info border-info/30" },
-  clt:      { label: "CLT",    cls: "bg-success/15 text-success border-success/30" },
-  pj:       { label: "PJ",     cls: "bg-warning/15 text-warning-foreground border-warning/30" },
-  internal: { label: "Interno",cls: "bg-primary/15 text-primary border-primary/30" },
+  field:    { label: "Field",   cls: "bg-info/15 text-info border-info/30" },
+  clt:      { label: "CLT",     cls: "bg-success/15 text-success border-success/30" },
+  pj:       { label: "PJ",      cls: "bg-warning/15 text-warning-foreground border-warning/30" },
+  internal: { label: "Interno", cls: "bg-primary/15 text-primary border-primary/30" },
 };
 
 function TechniciansPage() {
@@ -60,6 +42,8 @@ function TechniciansPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [q, setQ] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [viewFor, setViewFor] = useState<Row | null>(null);
   const [badgeFor, setBadgeFor] = useState<Row | null>(null);
   const [editFor, setEditFor] = useState<Row | null>(null);
   const [statsFor, setStatsFor] = useState<Row | null>(null);
@@ -79,18 +63,12 @@ function TechniciansPage() {
   const delFn = useServerFn(deleteTechnician);
   const delMut = useMutation({
     mutationFn: (id: string) => delFn({ data: { user_id: id } }),
-    onSuccess: () => {
-      toast.success("Técnico excluído");
-      qc.invalidateQueries({ queryKey: ["technicians"] });
-      setDeleteFor(null);
-    },
+    onSuccess: () => { toast.success("Técnico excluído"); qc.invalidateQueries({ queryKey: ["technicians"] }); setDeleteFor(null); },
     onError: (e: any) => toast.error("Falha ao excluir", { description: e?.message }),
   });
 
   const filtered = rows.filter((r) =>
-    [r.full_name, r.email, r.specialty, r.registration_code]
-      .filter(Boolean)
-      .some((v) => v!.toLowerCase().includes(q.toLowerCase()))
+    [r.full_name, r.email, r.specialty, r.registration_code].filter(Boolean).some((v) => v!.toLowerCase().includes(q.toLowerCase()))
   );
 
   return (
@@ -102,8 +80,8 @@ function TechniciansPage() {
           <p className="text-sm text-muted-foreground">Gerencie técnicos, vínculos, crachás e desempenho.</p>
         </div>
         {isAdmin && (
-          <Button asChild>
-            <Link to="/tecnicos/novo"><Plus className="h-4 w-4" /> Adicionar técnico</Link>
+          <Button onClick={() => setAddOpen(true)}>
+            <Plus className="h-4 w-4" /> Adicionar técnico
           </Button>
         )}
       </div>
@@ -111,11 +89,7 @@ function TechniciansPage() {
       <div className="mb-4 max-w-sm">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={q} onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar por nome, email, especialidade, matrícula…"
-            className="h-10 pl-9 bg-surface-muted"
-          />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nome, email, especialidade, matrícula…" className="h-10 pl-9 bg-surface-muted" />
         </div>
       </div>
 
@@ -123,26 +97,14 @@ function TechniciansPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-surface-muted/70">
-              <TableHead>Técnico</TableHead>
-              <TableHead>Especialidade</TableHead>
-              <TableHead>Vínculo</TableHead>
-              <TableHead>Matrícula</TableHead>
-              <TableHead>Contato</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Técnico</TableHead><TableHead>Especialidade</TableHead><TableHead>Vínculo</TableHead>
+              <TableHead>Matrícula</TableHead><TableHead>Contato</TableHead><TableHead>Status</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading && (
-              <TableRow><TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                <Loader2 className="mx-auto h-5 w-5 animate-spin" />
-              </TableCell></TableRow>
-            )}
-            {!isLoading && filtered.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
-                Nenhum técnico encontrado.
-              </TableCell></TableRow>
-            )}
+            {isLoading && <TableRow><TableCell colSpan={7} className="py-10 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" /></TableCell></TableRow>}
+            {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">Nenhum técnico encontrado.</TableCell></TableRow>}
             {filtered.map((r) => {
               const initials = r.full_name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
               const emp = employmentLabel[r.employment_type] ?? employmentLabel.field;
@@ -161,9 +123,7 @@ function TechniciansPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-sm">{r.specialty ?? "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={emp.cls}>{emp.label}</Badge>
-                  </TableCell>
+                  <TableCell><Badge variant="outline" className={emp.cls}>{emp.label}</Badge></TableCell>
                   <TableCell className="font-mono text-xs">{r.registration_code ?? "—"}</TableCell>
                   <TableCell>
                     <div className="space-y-0.5 text-xs text-muted-foreground">
@@ -179,24 +139,13 @@ function TechniciansPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-0.5">
-                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Ver crachá" onClick={() => setBadgeFor(r)}>
-                        <IdCard className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Ver perfil"
-                        onClick={() => navigate({ to: "/tecnicos/$id/cracha", params: { id: r.id } })}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Desempenho" onClick={() => setStatsFor(r)}>
-                        <BarChart3 className="h-4 w-4" />
-                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Ver perfil" onClick={() => setViewFor(r)}><Eye className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Ver crachá" onClick={() => setBadgeFor(r)}><IdCard className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Desempenho" onClick={() => setStatsFor(r)}><BarChart3 className="h-4 w-4" /></Button>
                       {isAdmin && (
                         <>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar" onClick={() => setEditFor(r)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" title="Excluir" onClick={() => setDeleteFor(r)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar" onClick={() => setEditFor(r)}><Pencil className="h-4 w-4" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" title="Excluir" onClick={() => setDeleteFor(r)}><Trash2 className="h-4 w-4" /></Button>
                         </>
                       )}
                     </div>
@@ -208,27 +157,22 @@ function TechniciansPage() {
         </Table>
       </div>
 
+      <TechnicianFormSheet open={addOpen} onOpenChange={setAddOpen} />
+      <TechnicianViewSheet tech={viewFor} open={!!viewFor} onOpenChange={(o) => !o && setViewFor(null)} />
       <CrachaModal tech={badgeFor} open={!!badgeFor} onOpenChange={(o) => !o && setBadgeFor(null)} />
-
       <EditDialog row={editFor} onClose={() => setEditFor(null)} onSaved={() => qc.invalidateQueries({ queryKey: ["technicians"] })} />
-
       <StatsDialog row={statsFor} onClose={() => setStatsFor(null)} />
 
       <AlertDialog open={!!deleteFor} onOpenChange={(o) => !o && setDeleteFor(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir técnico?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação remove permanentemente o acesso de <b>{deleteFor?.full_name}</b>. Não pode ser desfeito.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Esta ação remove permanentemente o acesso de <b>{deleteFor?.full_name}</b>. Não pode ser desfeito.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={delMut.isPending}
-              onClick={(e) => { e.preventDefault(); if (deleteFor) delMut.mutate(deleteFor.id); }}
-            >
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={delMut.isPending}
+              onClick={(e) => { e.preventDefault(); if (deleteFor) delMut.mutate(deleteFor.id); }}>
               {delMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir definitivamente"}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -242,8 +186,6 @@ function EditDialog({ row, onClose, onSaved }: { row: Row | null; onClose: () =>
   const upd = useServerFn(updateTechnician);
   const [form, setForm] = useState<Row | null>(null);
   const open = !!row;
-
-  // sync form on open
   if (row && (form?.id !== row.id)) setForm(row);
 
   const mut = useMutation({
@@ -264,26 +206,11 @@ function EditDialog({ row, onClose, onSaved }: { row: Row | null; onClose: () =>
         </DialogHeader>
         {form && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>Nome completo</Label>
-              <Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Telefone</Label>
-              <Input value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Matrícula</Label>
-              <Input value={form.registration_code ?? ""} onChange={(e) => setForm({ ...form, registration_code: e.target.value })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Cargo</Label>
-              <Input value={form.job_title ?? ""} onChange={(e) => setForm({ ...form, job_title: e.target.value })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Especialidade</Label>
-              <Input value={form.specialty ?? ""} onChange={(e) => setForm({ ...form, specialty: e.target.value })} />
-            </div>
+            <div className="space-y-1.5 sm:col-span-2"><Label>Nome completo</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Telefone</Label><Input value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Matrícula</Label><Input value={form.registration_code ?? ""} onChange={(e) => setForm({ ...form, registration_code: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Cargo</Label><Input value={form.job_title ?? ""} onChange={(e) => setForm({ ...form, job_title: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Especialidade</Label><Input value={form.specialty ?? ""} onChange={(e) => setForm({ ...form, specialty: e.target.value })} /></div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Vínculo</Label>
               <Select value={form.employment_type} onValueChange={(v) => setForm({ ...form, employment_type: v as Row["employment_type"] })}>
@@ -311,7 +238,6 @@ function EditDialog({ row, onClose, onSaved }: { row: Row | null; onClose: () =>
 
 function StatsDialog({ row, onClose }: { row: Row | null; onClose: () => void }) {
   const open = !!row;
-  // Real ticket counts could be loaded by query — using indicative weekly buckets here.
   const data = [
     { dia: "Seg", resolvidos: 4 }, { dia: "Ter", resolvidos: 7 }, { dia: "Qua", resolvidos: 3 },
     { dia: "Qui", resolvidos: 6 }, { dia: "Sex", resolvidos: 9 }, { dia: "Sáb", resolvidos: 2 },
@@ -334,11 +260,8 @@ function StatsDialog({ row, onClose }: { row: Row | null; onClose: () => void })
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
               <XAxis dataKey="dia" stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
               <YAxis stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-              <Tooltip
-                cursor={{ fill: "var(--color-accent)", opacity: 0.35, radius: 6 }}
-                contentStyle={{ background: "var(--color-popover)", color: "var(--color-popover-foreground)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12, boxShadow: "var(--shadow-floating)" }}
-                itemStyle={{ color: "var(--color-popover-foreground)" }}
-              />
+              <Tooltip cursor={{ fill: "var(--color-accent)", opacity: 0.35, radius: 6 }}
+                contentStyle={{ background: "var(--color-popover)", color: "var(--color-popover-foreground)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }} />
               <Bar dataKey="resolvidos" fill="var(--color-chart-1)" radius={[6, 6, 0, 0]} maxBarSize={36} />
             </BarChart>
           </ResponsiveContainer>

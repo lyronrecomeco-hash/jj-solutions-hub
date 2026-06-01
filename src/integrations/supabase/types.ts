@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          entity: string | null
+          entity_id: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           address: string | null
@@ -183,6 +213,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      technician_messages: {
+        Row: {
+          author_id: string
+          body: string | null
+          created_at: string
+          id: string
+          media_type: string | null
+          media_url: string | null
+          technician_id: string
+          ticket_id: string | null
+        }
+        Insert: {
+          author_id: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          technician_id: string
+          ticket_id?: string | null
+        }
+        Update: {
+          author_id?: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          technician_id?: string
+          ticket_id?: string | null
+        }
+        Relationships: []
       }
       technician_signups: {
         Row: {

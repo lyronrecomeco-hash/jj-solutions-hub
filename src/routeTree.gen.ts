@@ -22,6 +22,7 @@ import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoe
 import { Route as AppClientesRouteImport } from './routes/_app/clientes'
 import { Route as AppChamadosRouteImport } from './routes/_app/chamados'
 import { Route as AppCadastrosPendentesRouteImport } from './routes/_app/cadastros-pendentes'
+import { Route as AppAtribuicaoRouteImport } from './routes/_app/atribuicao'
 import { Route as AppTecnicosNovoRouteImport } from './routes/_app/tecnicos.novo'
 import { Route as AppChamadosIdRouteImport } from './routes/_app/chamados.$id'
 import { Route as AppTecnicosIdCrachaRouteImport } from './routes/_app/tecnicos.$id.cracha'
@@ -90,6 +91,11 @@ const AppCadastrosPendentesRoute = AppCadastrosPendentesRouteImport.update({
   path: '/cadastros-pendentes',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAtribuicaoRoute = AppAtribuicaoRouteImport.update({
+  id: '/atribuicao',
+  path: '/atribuicao',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppTecnicosNovoRoute = AppTecnicosNovoRouteImport.update({
   id: '/novo',
   path: '/novo',
@@ -109,6 +115,7 @@ const AppTecnicosIdCrachaRoute = AppTecnicosIdCrachaRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/atribuicao': typeof AppAtribuicaoRoute
   '/cadastros-pendentes': typeof AppCadastrosPendentesRoute
   '/chamados': typeof AppChamadosRouteWithChildren
   '/clientes': typeof AppClientesRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/atribuicao': typeof AppAtribuicaoRoute
   '/cadastros-pendentes': typeof AppCadastrosPendentesRoute
   '/chamados': typeof AppChamadosRouteWithChildren
   '/clientes': typeof AppClientesRoute
@@ -145,6 +153,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/atribuicao': typeof AppAtribuicaoRoute
   '/_app/cadastros-pendentes': typeof AppCadastrosPendentesRoute
   '/_app/chamados': typeof AppChamadosRouteWithChildren
   '/_app/clientes': typeof AppClientesRoute
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/atribuicao'
     | '/cadastros-pendentes'
     | '/chamados'
     | '/clientes'
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/atribuicao'
     | '/cadastros-pendentes'
     | '/chamados'
     | '/clientes'
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/login'
+    | '/_app/atribuicao'
     | '/_app/cadastros-pendentes'
     | '/_app/chamados'
     | '/_app/clientes'
@@ -313,6 +325,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCadastrosPendentesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/atribuicao': {
+      id: '/_app/atribuicao'
+      path: '/atribuicao'
+      fullPath: '/atribuicao'
+      preLoaderRoute: typeof AppAtribuicaoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/tecnicos/novo': {
       id: '/_app/tecnicos/novo'
       path: '/novo'
@@ -364,6 +383,7 @@ const AppTecnicosRouteWithChildren = AppTecnicosRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppAtribuicaoRoute: typeof AppAtribuicaoRoute
   AppCadastrosPendentesRoute: typeof AppCadastrosPendentesRoute
   AppChamadosRoute: typeof AppChamadosRouteWithChildren
   AppClientesRoute: typeof AppClientesRoute
@@ -377,6 +397,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAtribuicaoRoute: AppAtribuicaoRoute,
   AppCadastrosPendentesRoute: AppCadastrosPendentesRoute,
   AppChamadosRoute: AppChamadosRouteWithChildren,
   AppClientesRoute: AppClientesRoute,
