@@ -1,24 +1,23 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationsBell } from "@/components/notifications-bell";
 import { useAuth } from "@/hooks/use-auth";
+import { useGeolocationTracker } from "@/hooks/use-geolocation-tracker";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { Bell, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/_app")({
-  component: AppLayout,
-});
+export const Route = createFileRoute("/_app")({ component: AppLayout });
 
 function AppLayout() {
   const { user, loading, profile } = useAuth();
   const navigate = useNavigate();
+  useGeolocationTracker();
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login", replace: true });
@@ -33,12 +32,7 @@ function AppLayout() {
   }
 
   const initials = (profile?.full_name || user.email || "JJ")
-    .split(" ")
-    .map((p) => p[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+    .split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
 
   return (
     <SidebarProvider>
@@ -53,16 +47,11 @@ function AppLayout() {
           </div>
           <div className="ml-auto flex items-center gap-1">
             <ThemeToggle />
-            <Button variant="ghost" size="icon" className="h-9 w-9 relative">
-              <Bell className="h-4 w-4" />
-              <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-destructive" />
-            </Button>
+            <NotificationsBell />
             <Separator orientation="vertical" className="mx-1 h-6" />
             <div className="hidden items-center gap-2 pl-1 sm:flex">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                  {initials}
-                </AvatarFallback>
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">{initials}</AvatarFallback>
               </Avatar>
               <div className="leading-tight">
                 <div className="text-xs font-semibold">{profile?.full_name || user.email}</div>

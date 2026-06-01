@@ -86,6 +86,45 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          entity: string | null
+          entity_id: string | null
+          id: string
+          link: string | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -214,6 +253,36 @@ export type Database = {
           },
         ]
       }
+      technician_locations: {
+        Row: {
+          accuracy: number | null
+          heading: number | null
+          lat: number
+          lng: number
+          speed: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          heading?: number | null
+          lat: number
+          lng: number
+          speed?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          heading?: number | null
+          lat?: number
+          lng?: number
+          speed?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       technician_messages: {
         Row: {
           author_id: string
@@ -222,6 +291,7 @@ export type Database = {
           id: string
           media_type: string | null
           media_url: string | null
+          read_at: string | null
           technician_id: string
           ticket_id: string | null
         }
@@ -232,6 +302,7 @@ export type Database = {
           id?: string
           media_type?: string | null
           media_url?: string | null
+          read_at?: string | null
           technician_id: string
           ticket_id?: string | null
         }
@@ -242,6 +313,7 @@ export type Database = {
           id?: string
           media_type?: string | null
           media_url?: string | null
+          read_at?: string | null
           technician_id?: string
           ticket_id?: string | null
         }
@@ -566,7 +638,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "supervisor" | "senior_tech" | "tech"
       employment_type: "field" | "clt" | "pj" | "internal"
-      signup_status: "pending" | "approved" | "rejected"
+      signup_status: "pending" | "approved" | "rejected" | "on_hold"
       ticket_priority: "low" | "medium" | "high" | "critical"
       ticket_status:
         | "open"
@@ -707,7 +779,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "supervisor", "senior_tech", "tech"],
       employment_type: ["field", "clt", "pj", "internal"],
-      signup_status: ["pending", "approved", "rejected"],
+      signup_status: ["pending", "approved", "rejected", "on_hold"],
       ticket_priority: ["low", "medium", "high", "critical"],
       ticket_status: [
         "open",

@@ -1,7 +1,7 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard, Ticket, Users, Building2, BarChart3, MessageSquare,
-  Settings, ScrollText, LogOut, IdCard, ClipboardList, UserCog,
+  Settings, ScrollText, LogOut, IdCard, ClipboardList, UserCog, MapPin,
 } from "lucide-react";
 
 import {
@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/sidebar";
 import { JJLogo } from "@/components/jj-logo";
 import { useAuth } from "@/hooks/use-auth";
-import { useNavigate } from "@tanstack/react-router";
 
 type NavItem = { title: string; url: string; icon: React.ComponentType<{ className?: string }> };
 
@@ -28,6 +27,7 @@ const techManagementItems: NavItem[] = [
   { title: "Equipe Técnica", url: "/tecnicos", icon: Users },
   { title: "Cadastros Pendentes", url: "/cadastros-pendentes", icon: ClipboardList },
   { title: "Atribuição", url: "/atribuicao", icon: UserCog },
+  { title: "Monitoramento", url: "/monitoramento", icon: MapPin },
 ];
 
 const customerItems: NavItem[] = [

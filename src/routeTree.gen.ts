@@ -9,11 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SolicitarCadastroRouteImport } from './routes/solicitar-cadastro'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppTecnicosRouteImport } from './routes/_app/tecnicos'
 import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
+import { Route as AppMonitoramentoRouteImport } from './routes/_app/monitoramento'
 import { Route as AppMeuCrachaRouteImport } from './routes/_app/meu-cracha'
 import { Route as AppMensagensRouteImport } from './routes/_app/mensagens'
 import { Route as AppLogsRouteImport } from './routes/_app/logs'
@@ -27,6 +29,11 @@ import { Route as AppTecnicosNovoRouteImport } from './routes/_app/tecnicos.novo
 import { Route as AppChamadosIdRouteImport } from './routes/_app/chamados.$id'
 import { Route as AppTecnicosIdCrachaRouteImport } from './routes/_app/tecnicos.$id.cracha'
 
+const SolicitarCadastroRoute = SolicitarCadastroRouteImport.update({
+  id: '/solicitar-cadastro',
+  path: '/solicitar-cadastro',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -49,6 +56,11 @@ const AppTecnicosRoute = AppTecnicosRouteImport.update({
 const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMonitoramentoRoute = AppMonitoramentoRouteImport.update({
+  id: '/monitoramento',
+  path: '/monitoramento',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMeuCrachaRoute = AppMeuCrachaRouteImport.update({
@@ -115,6 +127,7 @@ const AppTecnicosIdCrachaRoute = AppTecnicosIdCrachaRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/solicitar-cadastro': typeof SolicitarCadastroRoute
   '/atribuicao': typeof AppAtribuicaoRoute
   '/cadastros-pendentes': typeof AppCadastrosPendentesRoute
   '/chamados': typeof AppChamadosRouteWithChildren
@@ -124,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/logs': typeof AppLogsRoute
   '/mensagens': typeof AppMensagensRoute
   '/meu-cracha': typeof AppMeuCrachaRoute
+  '/monitoramento': typeof AppMonitoramentoRoute
   '/relatorios': typeof AppRelatoriosRoute
   '/tecnicos': typeof AppTecnicosRouteWithChildren
   '/chamados/$id': typeof AppChamadosIdRoute
@@ -133,6 +147,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/solicitar-cadastro': typeof SolicitarCadastroRoute
   '/atribuicao': typeof AppAtribuicaoRoute
   '/cadastros-pendentes': typeof AppCadastrosPendentesRoute
   '/chamados': typeof AppChamadosRouteWithChildren
@@ -142,6 +157,7 @@ export interface FileRoutesByTo {
   '/logs': typeof AppLogsRoute
   '/mensagens': typeof AppMensagensRoute
   '/meu-cracha': typeof AppMeuCrachaRoute
+  '/monitoramento': typeof AppMonitoramentoRoute
   '/relatorios': typeof AppRelatoriosRoute
   '/tecnicos': typeof AppTecnicosRouteWithChildren
   '/chamados/$id': typeof AppChamadosIdRoute
@@ -153,6 +169,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/solicitar-cadastro': typeof SolicitarCadastroRoute
   '/_app/atribuicao': typeof AppAtribuicaoRoute
   '/_app/cadastros-pendentes': typeof AppCadastrosPendentesRoute
   '/_app/chamados': typeof AppChamadosRouteWithChildren
@@ -162,6 +179,7 @@ export interface FileRoutesById {
   '/_app/logs': typeof AppLogsRoute
   '/_app/mensagens': typeof AppMensagensRoute
   '/_app/meu-cracha': typeof AppMeuCrachaRoute
+  '/_app/monitoramento': typeof AppMonitoramentoRoute
   '/_app/relatorios': typeof AppRelatoriosRoute
   '/_app/tecnicos': typeof AppTecnicosRouteWithChildren
   '/_app/chamados/$id': typeof AppChamadosIdRoute
@@ -173,6 +191,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/solicitar-cadastro'
     | '/atribuicao'
     | '/cadastros-pendentes'
     | '/chamados'
@@ -182,6 +201,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/mensagens'
     | '/meu-cracha'
+    | '/monitoramento'
     | '/relatorios'
     | '/tecnicos'
     | '/chamados/$id'
@@ -191,6 +211,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/solicitar-cadastro'
     | '/atribuicao'
     | '/cadastros-pendentes'
     | '/chamados'
@@ -200,6 +221,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/mensagens'
     | '/meu-cracha'
+    | '/monitoramento'
     | '/relatorios'
     | '/tecnicos'
     | '/chamados/$id'
@@ -210,6 +232,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/login'
+    | '/solicitar-cadastro'
     | '/_app/atribuicao'
     | '/_app/cadastros-pendentes'
     | '/_app/chamados'
@@ -219,6 +242,7 @@ export interface FileRouteTypes {
     | '/_app/logs'
     | '/_app/mensagens'
     | '/_app/meu-cracha'
+    | '/_app/monitoramento'
     | '/_app/relatorios'
     | '/_app/tecnicos'
     | '/_app/chamados/$id'
@@ -230,10 +254,18 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  SolicitarCadastroRoute: typeof SolicitarCadastroRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/solicitar-cadastro': {
+      id: '/solicitar-cadastro'
+      path: '/solicitar-cadastro'
+      fullPath: '/solicitar-cadastro'
+      preLoaderRoute: typeof SolicitarCadastroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -267,6 +299,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/relatorios'
       preLoaderRoute: typeof AppRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/monitoramento': {
+      id: '/_app/monitoramento'
+      path: '/monitoramento'
+      fullPath: '/monitoramento'
+      preLoaderRoute: typeof AppMonitoramentoRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/meu-cracha': {
@@ -392,6 +431,7 @@ interface AppRouteChildren {
   AppLogsRoute: typeof AppLogsRoute
   AppMensagensRoute: typeof AppMensagensRoute
   AppMeuCrachaRoute: typeof AppMeuCrachaRoute
+  AppMonitoramentoRoute: typeof AppMonitoramentoRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
   AppTecnicosRoute: typeof AppTecnicosRouteWithChildren
 }
@@ -406,6 +446,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppLogsRoute: AppLogsRoute,
   AppMensagensRoute: AppMensagensRoute,
   AppMeuCrachaRoute: AppMeuCrachaRoute,
+  AppMonitoramentoRoute: AppMonitoramentoRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
   AppTecnicosRoute: AppTecnicosRouteWithChildren,
 }
@@ -416,6 +457,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  SolicitarCadastroRoute: SolicitarCadastroRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
