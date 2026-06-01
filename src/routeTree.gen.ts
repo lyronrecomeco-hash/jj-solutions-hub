@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppTecnicosRouteImport } from './routes/_app/tecnicos'
 import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
+import { Route as AppMeuCrachaRouteImport } from './routes/_app/meu-cracha'
 import { Route as AppMensagensRouteImport } from './routes/_app/mensagens'
 import { Route as AppLogsRouteImport } from './routes/_app/logs'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
@@ -21,6 +22,8 @@ import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoe
 import { Route as AppClientesRouteImport } from './routes/_app/clientes'
 import { Route as AppChamadosRouteImport } from './routes/_app/chamados'
 import { Route as AppCadastrosPendentesRouteImport } from './routes/_app/cadastros-pendentes'
+import { Route as AppTecnicosNovoRouteImport } from './routes/_app/tecnicos.novo'
+import { Route as AppTecnicosIdCrachaRouteImport } from './routes/_app/tecnicos.$id.cracha'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -44,6 +47,11 @@ const AppTecnicosRoute = AppTecnicosRouteImport.update({
 const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMeuCrachaRoute = AppMeuCrachaRouteImport.update({
+  id: '/meu-cracha',
+  path: '/meu-cracha',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMensagensRoute = AppMensagensRouteImport.update({
@@ -81,6 +89,16 @@ const AppCadastrosPendentesRoute = AppCadastrosPendentesRouteImport.update({
   path: '/cadastros-pendentes',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTecnicosNovoRoute = AppTecnicosNovoRouteImport.update({
+  id: '/novo',
+  path: '/novo',
+  getParentRoute: () => AppTecnicosRoute,
+} as any)
+const AppTecnicosIdCrachaRoute = AppTecnicosIdCrachaRouteImport.update({
+  id: '/$id/cracha',
+  path: '/$id/cracha',
+  getParentRoute: () => AppTecnicosRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -92,8 +110,11 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/logs': typeof AppLogsRoute
   '/mensagens': typeof AppMensagensRoute
+  '/meu-cracha': typeof AppMeuCrachaRoute
   '/relatorios': typeof AppRelatoriosRoute
-  '/tecnicos': typeof AppTecnicosRoute
+  '/tecnicos': typeof AppTecnicosRouteWithChildren
+  '/tecnicos/novo': typeof AppTecnicosNovoRoute
+  '/tecnicos/$id/cracha': typeof AppTecnicosIdCrachaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -105,8 +126,11 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/logs': typeof AppLogsRoute
   '/mensagens': typeof AppMensagensRoute
+  '/meu-cracha': typeof AppMeuCrachaRoute
   '/relatorios': typeof AppRelatoriosRoute
-  '/tecnicos': typeof AppTecnicosRoute
+  '/tecnicos': typeof AppTecnicosRouteWithChildren
+  '/tecnicos/novo': typeof AppTecnicosNovoRoute
+  '/tecnicos/$id/cracha': typeof AppTecnicosIdCrachaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -120,8 +144,11 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/logs': typeof AppLogsRoute
   '/_app/mensagens': typeof AppMensagensRoute
+  '/_app/meu-cracha': typeof AppMeuCrachaRoute
   '/_app/relatorios': typeof AppRelatoriosRoute
-  '/_app/tecnicos': typeof AppTecnicosRoute
+  '/_app/tecnicos': typeof AppTecnicosRouteWithChildren
+  '/_app/tecnicos/novo': typeof AppTecnicosNovoRoute
+  '/_app/tecnicos/$id/cracha': typeof AppTecnicosIdCrachaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -135,8 +162,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/logs'
     | '/mensagens'
+    | '/meu-cracha'
     | '/relatorios'
     | '/tecnicos'
+    | '/tecnicos/novo'
+    | '/tecnicos/$id/cracha'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -148,8 +178,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/logs'
     | '/mensagens'
+    | '/meu-cracha'
     | '/relatorios'
     | '/tecnicos'
+    | '/tecnicos/novo'
+    | '/tecnicos/$id/cracha'
   id:
     | '__root__'
     | '/'
@@ -162,8 +195,11 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/logs'
     | '/_app/mensagens'
+    | '/_app/meu-cracha'
     | '/_app/relatorios'
     | '/_app/tecnicos'
+    | '/_app/tecnicos/novo'
+    | '/_app/tecnicos/$id/cracha'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -207,6 +243,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/relatorios'
       preLoaderRoute: typeof AppRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/meu-cracha': {
+      id: '/_app/meu-cracha'
+      path: '/meu-cracha'
+      fullPath: '/meu-cracha'
+      preLoaderRoute: typeof AppMeuCrachaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/mensagens': {
@@ -258,8 +301,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCadastrosPendentesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/tecnicos/novo': {
+      id: '/_app/tecnicos/novo'
+      path: '/novo'
+      fullPath: '/tecnicos/novo'
+      preLoaderRoute: typeof AppTecnicosNovoRouteImport
+      parentRoute: typeof AppTecnicosRoute
+    }
+    '/_app/tecnicos/$id/cracha': {
+      id: '/_app/tecnicos/$id/cracha'
+      path: '/$id/cracha'
+      fullPath: '/tecnicos/$id/cracha'
+      preLoaderRoute: typeof AppTecnicosIdCrachaRouteImport
+      parentRoute: typeof AppTecnicosRoute
+    }
   }
 }
+
+interface AppTecnicosRouteChildren {
+  AppTecnicosNovoRoute: typeof AppTecnicosNovoRoute
+  AppTecnicosIdCrachaRoute: typeof AppTecnicosIdCrachaRoute
+}
+
+const AppTecnicosRouteChildren: AppTecnicosRouteChildren = {
+  AppTecnicosNovoRoute: AppTecnicosNovoRoute,
+  AppTecnicosIdCrachaRoute: AppTecnicosIdCrachaRoute,
+}
+
+const AppTecnicosRouteWithChildren = AppTecnicosRoute._addFileChildren(
+  AppTecnicosRouteChildren,
+)
 
 interface AppRouteChildren {
   AppCadastrosPendentesRoute: typeof AppCadastrosPendentesRoute
@@ -269,8 +340,9 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppLogsRoute: typeof AppLogsRoute
   AppMensagensRoute: typeof AppMensagensRoute
+  AppMeuCrachaRoute: typeof AppMeuCrachaRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
-  AppTecnicosRoute: typeof AppTecnicosRoute
+  AppTecnicosRoute: typeof AppTecnicosRouteWithChildren
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -281,8 +353,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppLogsRoute: AppLogsRoute,
   AppMensagensRoute: AppMensagensRoute,
+  AppMeuCrachaRoute: AppMeuCrachaRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
-  AppTecnicosRoute: AppTecnicosRoute,
+  AppTecnicosRoute: AppTecnicosRouteWithChildren,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

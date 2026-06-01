@@ -102,8 +102,8 @@
   --info: oklch(0.6 0.12 235);
   --info-foreground: oklch(0.99 0.005 250);
 
-  --border: oklch(0.91 0.006 250);
-  --input: oklch(0.93 0.006 250);
+  --border: oklch(0.88 0.008 250);
+  --input: oklch(0.9 0.008 250);
   --ring: oklch(0.55 0.13 258);
 
   --chart-1: oklch(0.55 0.13 258);
@@ -112,14 +112,15 @@
   --chart-4: oklch(0.7 0.13 75);
   --chart-5: oklch(0.55 0.16 25);
 
-  --sidebar: oklch(0.99 0.003 250);
-  --sidebar-foreground: oklch(0.28 0.02 260);
-  --sidebar-primary: oklch(0.42 0.13 258);
-  --sidebar-primary-foreground: oklch(0.99 0.005 250);
-  --sidebar-accent: oklch(0.95 0.008 252);
-  --sidebar-accent-foreground: oklch(0.25 0.02 260);
-  --sidebar-border: oklch(0.92 0.006 250);
-  --sidebar-ring: oklch(0.55 0.13 258);
+  /* Sidebar — permanece escura mesmo no light mode (padrão de painéis SaaS) */
+  --sidebar: oklch(0.18 0.014 260);
+  --sidebar-foreground: oklch(0.92 0.005 250);
+  --sidebar-primary: oklch(0.68 0.14 248);
+  --sidebar-primary-foreground: oklch(0.14 0.012 260);
+  --sidebar-accent: oklch(0.255 0.015 260);
+  --sidebar-accent-foreground: oklch(0.97 0.005 250);
+  --sidebar-border: oklch(0.26 0.012 260);
+  --sidebar-ring: oklch(0.66 0.13 248);
 }
 
 .dark {

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Loader2, ShieldCheck, Activity, Cpu, Headset } from "lucide-react";
+import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { JJLogo } from "@/components/jj-logo";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { LoginAnimation } from "@/components/login-animation";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -45,60 +44,44 @@ function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background lg:grid lg:grid-cols-[1.1fr_1fr]">
-      {/* Animated tech pane */}
+      {/* Quiet, minimal brand pane */}
       <aside className="relative hidden overflow-hidden lg:block">
         <LoginAnimation />
-        <div className="relative z-10 flex h-full flex-col justify-between p-10 text-white xl:p-14">
+        <div className="relative z-10 flex h-full flex-col justify-between p-12 text-white xl:p-16">
           <motion.div
-            initial={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.5 }}
           >
             <JJLogo />
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.15 }}
-            className="max-w-lg space-y-7"
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="max-w-md space-y-5"
           >
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-white/80 backdrop-blur-sm">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Service Desk · Online
-            </span>
-            <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight xl:text-[2.95rem]">
-              Tecnologia que conecta sua equipe ao chamado certo.
+            <h1 className="font-display text-[2.1rem] font-semibold leading-tight tracking-tight xl:text-[2.4rem]">
+              Service Desk para times de TI.
             </h1>
-            <p className="text-base leading-relaxed text-white/70">
-              Plataforma unificada para gestão de chamados, técnicos de campo e
-              relatórios operacionais — feita para times de TI que entregam SLA.
+            <p className="text-[15px] leading-relaxed text-white/65">
+              Gestão de chamados, técnicos de campo e relatórios operacionais
+              em uma única plataforma.
             </p>
-
-            <div className="grid grid-cols-3 gap-3 pt-2">
-              <Feature icon={<Activity className="h-4 w-4" />} title="SLA em tempo real" />
-              <Feature icon={<Cpu className="h-4 w-4" />} title="Field Service" />
-              <Feature icon={<Headset className="h-4 w-4" />} title="Atendimento 360°" />
-            </div>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="flex items-center justify-between text-[11px] text-white/50"
-          >
-            <span>© {new Date().getFullYear()} JJ Informática — Soluções em Tecnologia</span>
+          <div className="flex items-center justify-between text-[11px] text-white/45">
+            <span>© {new Date().getFullYear()} JJ Informática</span>
             <span className="inline-flex items-center gap-1.5">
               <ShieldCheck className="h-3.5 w-3.5" /> Conexão segura
             </span>
-          </motion.div>
+          </div>
         </div>
       </aside>
 
       {/* Form pane */}
       <main className="relative flex min-h-screen items-center justify-center px-5 py-10 sm:px-8">
-        <div className="absolute right-5 top-5"><ThemeToggle /></div>
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -190,13 +173,3 @@ function LoginPage() {
   );
 }
 
-function Feature({ icon, title }: { icon: React.ReactNode; title: string }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3 backdrop-blur-sm">
-      <div className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded-md bg-white/10 text-white/90">
-        {icon}
-      </div>
-      <div className="text-[12px] font-medium leading-tight text-white/90">{title}</div>
-    </div>
-  );
-}
