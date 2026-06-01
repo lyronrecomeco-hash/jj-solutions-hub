@@ -63,7 +63,7 @@ function DashboardPage() {
   const trendData = buildTrendData();
 
   return (
-    <div className="mx-auto w-full max-w-[1500px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <div className="w-full space-y-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Visão geral</p>
