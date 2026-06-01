@@ -9,38 +9,185 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppTecnicosRouteImport } from './routes/_app/tecnicos'
+import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
+import { Route as AppMensagensRouteImport } from './routes/_app/mensagens'
+import { Route as AppLogsRouteImport } from './routes/_app/logs'
+import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoes'
+import { Route as AppClientesRouteImport } from './routes/_app/clientes'
+import { Route as AppChamadosRouteImport } from './routes/_app/chamados'
+import { Route as AppCadastrosPendentesRouteImport } from './routes/_app/cadastros-pendentes'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppTecnicosRoute = AppTecnicosRouteImport.update({
+  id: '/tecnicos',
+  path: '/tecnicos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMensagensRoute = AppMensagensRouteImport.update({
+  id: '/mensagens',
+  path: '/mensagens',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLogsRoute = AppLogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClientesRoute = AppClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppChamadosRoute = AppChamadosRouteImport.update({
+  id: '/chamados',
+  path: '/chamados',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCadastrosPendentesRoute = AppCadastrosPendentesRouteImport.update({
+  id: '/cadastros-pendentes',
+  path: '/cadastros-pendentes',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/cadastros-pendentes': typeof AppCadastrosPendentesRoute
+  '/chamados': typeof AppChamadosRoute
+  '/clientes': typeof AppClientesRoute
+  '/configuracoes': typeof AppConfiguracoesRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/logs': typeof AppLogsRoute
+  '/mensagens': typeof AppMensagensRoute
+  '/relatorios': typeof AppRelatoriosRoute
+  '/tecnicos': typeof AppTecnicosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/cadastros-pendentes': typeof AppCadastrosPendentesRoute
+  '/chamados': typeof AppChamadosRoute
+  '/clientes': typeof AppClientesRoute
+  '/configuracoes': typeof AppConfiguracoesRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/logs': typeof AppLogsRoute
+  '/mensagens': typeof AppMensagensRoute
+  '/relatorios': typeof AppRelatoriosRoute
+  '/tecnicos': typeof AppTecnicosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_app/cadastros-pendentes': typeof AppCadastrosPendentesRoute
+  '/_app/chamados': typeof AppChamadosRoute
+  '/_app/clientes': typeof AppClientesRoute
+  '/_app/configuracoes': typeof AppConfiguracoesRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/logs': typeof AppLogsRoute
+  '/_app/mensagens': typeof AppMensagensRoute
+  '/_app/relatorios': typeof AppRelatoriosRoute
+  '/_app/tecnicos': typeof AppTecnicosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/cadastros-pendentes'
+    | '/chamados'
+    | '/clientes'
+    | '/configuracoes'
+    | '/dashboard'
+    | '/logs'
+    | '/mensagens'
+    | '/relatorios'
+    | '/tecnicos'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/cadastros-pendentes'
+    | '/chamados'
+    | '/clientes'
+    | '/configuracoes'
+    | '/dashboard'
+    | '/logs'
+    | '/mensagens'
+    | '/relatorios'
+    | '/tecnicos'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/login'
+    | '/_app/cadastros-pendentes'
+    | '/_app/chamados'
+    | '/_app/clientes'
+    | '/_app/configuracoes'
+    | '/_app/dashboard'
+    | '/_app/logs'
+    | '/_app/mensagens'
+    | '/_app/relatorios'
+    | '/_app/tecnicos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +195,103 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/tecnicos': {
+      id: '/_app/tecnicos'
+      path: '/tecnicos'
+      fullPath: '/tecnicos'
+      preLoaderRoute: typeof AppTecnicosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/relatorios': {
+      id: '/_app/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof AppRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/mensagens': {
+      id: '/_app/mensagens'
+      path: '/mensagens'
+      fullPath: '/mensagens'
+      preLoaderRoute: typeof AppMensagensRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/logs': {
+      id: '/_app/logs'
+      path: '/logs'
+      fullPath: '/logs'
+      preLoaderRoute: typeof AppLogsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/configuracoes': {
+      id: '/_app/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AppConfiguracoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/clientes': {
+      id: '/_app/clientes'
+      path: '/clientes'
+      fullPath: '/clientes'
+      preLoaderRoute: typeof AppClientesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/chamados': {
+      id: '/_app/chamados'
+      path: '/chamados'
+      fullPath: '/chamados'
+      preLoaderRoute: typeof AppChamadosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/cadastros-pendentes': {
+      id: '/_app/cadastros-pendentes'
+      path: '/cadastros-pendentes'
+      fullPath: '/cadastros-pendentes'
+      preLoaderRoute: typeof AppCadastrosPendentesRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppCadastrosPendentesRoute: typeof AppCadastrosPendentesRoute
+  AppChamadosRoute: typeof AppChamadosRoute
+  AppClientesRoute: typeof AppClientesRoute
+  AppConfiguracoesRoute: typeof AppConfiguracoesRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppLogsRoute: typeof AppLogsRoute
+  AppMensagensRoute: typeof AppMensagensRoute
+  AppRelatoriosRoute: typeof AppRelatoriosRoute
+  AppTecnicosRoute: typeof AppTecnicosRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppCadastrosPendentesRoute: AppCadastrosPendentesRoute,
+  AppChamadosRoute: AppChamadosRoute,
+  AppClientesRoute: AppClientesRoute,
+  AppConfiguracoesRoute: AppConfiguracoesRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppLogsRoute: AppLogsRoute,
+  AppMensagensRoute: AppMensagensRoute,
+  AppRelatoriosRoute: AppRelatoriosRoute,
+  AppTecnicosRoute: AppTecnicosRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
