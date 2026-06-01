@@ -103,7 +103,7 @@ export const reviewTechnicianSignup = createServerFn({ method: "POST" })
       .from("technician_signups")
       .update({
         status: data.decision,
-        review_reason: data.reason ?? null,
+        rejection_reason: data.reason ?? null,
         reviewed_by: context.userId,
         reviewed_at: new Date().toISOString(),
       })
