@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SolicitarCadastroRouteImport } from './routes/solicitar-cadastro'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
@@ -27,6 +28,11 @@ import { Route as AppTecnicosNovoRouteImport } from './routes/_app/tecnicos.novo
 import { Route as AppChamadosIdRouteImport } from './routes/_app/chamados.$id'
 import { Route as AppTecnicosIdCrachaRouteImport } from './routes/_app/tecnicos.$id.cracha'
 
+const SolicitarCadastroRoute = SolicitarCadastroRouteImport.update({
+  id: '/solicitar-cadastro',
+  path: '/solicitar-cadastro',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -115,6 +121,7 @@ const AppTecnicosIdCrachaRoute = AppTecnicosIdCrachaRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/solicitar-cadastro': typeof SolicitarCadastroRoute
   '/atribuicao': typeof AppAtribuicaoRoute
   '/cadastros-pendentes': typeof AppCadastrosPendentesRoute
   '/chamados': typeof AppChamadosRouteWithChildren
@@ -133,6 +140,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/solicitar-cadastro': typeof SolicitarCadastroRoute
   '/atribuicao': typeof AppAtribuicaoRoute
   '/cadastros-pendentes': typeof AppCadastrosPendentesRoute
   '/chamados': typeof AppChamadosRouteWithChildren
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/solicitar-cadastro': typeof SolicitarCadastroRoute
   '/_app/atribuicao': typeof AppAtribuicaoRoute
   '/_app/cadastros-pendentes': typeof AppCadastrosPendentesRoute
   '/_app/chamados': typeof AppChamadosRouteWithChildren
@@ -173,6 +182,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/solicitar-cadastro'
     | '/atribuicao'
     | '/cadastros-pendentes'
     | '/chamados'
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/solicitar-cadastro'
     | '/atribuicao'
     | '/cadastros-pendentes'
     | '/chamados'
@@ -210,6 +221,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/login'
+    | '/solicitar-cadastro'
     | '/_app/atribuicao'
     | '/_app/cadastros-pendentes'
     | '/_app/chamados'
@@ -230,10 +242,18 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  SolicitarCadastroRoute: typeof SolicitarCadastroRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/solicitar-cadastro': {
+      id: '/solicitar-cadastro'
+      path: '/solicitar-cadastro'
+      fullPath: '/solicitar-cadastro'
+      preLoaderRoute: typeof SolicitarCadastroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -416,6 +436,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  SolicitarCadastroRoute: SolicitarCadastroRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
