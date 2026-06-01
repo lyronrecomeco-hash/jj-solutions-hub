@@ -58,48 +58,203 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
+          address_complement: string | null
+          address_number: string | null
           avatar_url: string | null
+          bio: string | null
+          birth_date: string | null
+          cep: string | null
+          city: string | null
           company: string | null
+          cpf: string | null
           created_at: string
           email: string
+          employment_type: Database["public"]["Enums"]["employment_type"]
           full_name: string
           id: string
           job_title: string | null
           last_seen_at: string | null
+          neighborhood: string | null
           phone: string | null
+          photo_url: string | null
           registration_code: string | null
+          rg: string | null
           specialty: string | null
+          state: string | null
           status: Database["public"]["Enums"]["user_status"]
           updated_at: string
         }
         Insert: {
+          address?: string | null
+          address_complement?: string | null
+          address_number?: string | null
           avatar_url?: string | null
+          bio?: string | null
+          birth_date?: string | null
+          cep?: string | null
+          city?: string | null
           company?: string | null
+          cpf?: string | null
           created_at?: string
           email: string
+          employment_type?: Database["public"]["Enums"]["employment_type"]
           full_name?: string
           id: string
           job_title?: string | null
           last_seen_at?: string | null
+          neighborhood?: string | null
           phone?: string | null
+          photo_url?: string | null
           registration_code?: string | null
+          rg?: string | null
           specialty?: string | null
+          state?: string | null
           status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string
         }
         Update: {
+          address?: string | null
+          address_complement?: string | null
+          address_number?: string | null
           avatar_url?: string | null
+          bio?: string | null
+          birth_date?: string | null
+          cep?: string | null
+          city?: string | null
           company?: string | null
+          cpf?: string | null
           created_at?: string
           email?: string
+          employment_type?: Database["public"]["Enums"]["employment_type"]
           full_name?: string
           id?: string
           job_title?: string | null
           last_seen_at?: string | null
+          neighborhood?: string | null
           phone?: string | null
+          photo_url?: string | null
           registration_code?: string | null
+          rg?: string | null
           specialty?: string | null
+          state?: string | null
           status?: Database["public"]["Enums"]["user_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      technician_equipment: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          serial_number: string | null
+          technician_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          serial_number?: string | null
+          technician_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          serial_number?: string | null
+          technician_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technician_equipment_technician_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      technician_signups: {
+        Row: {
+          address: string | null
+          address_complement: string | null
+          address_number: string | null
+          birth_date: string | null
+          cep: string | null
+          city: string | null
+          cpf: string | null
+          created_at: string
+          desired_employment_type: Database["public"]["Enums"]["employment_type"]
+          email: string
+          full_name: string
+          id: string
+          neighborhood: string | null
+          phone: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          rg: string | null
+          specialty: string | null
+          state: string | null
+          status: Database["public"]["Enums"]["signup_status"]
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          address_complement?: string | null
+          address_number?: string | null
+          birth_date?: string | null
+          cep?: string | null
+          city?: string | null
+          cpf?: string | null
+          created_at?: string
+          desired_employment_type?: Database["public"]["Enums"]["employment_type"]
+          email: string
+          full_name: string
+          id?: string
+          neighborhood?: string | null
+          phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rg?: string | null
+          specialty?: string | null
+          state?: string | null
+          status?: Database["public"]["Enums"]["signup_status"]
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          address_complement?: string | null
+          address_number?: string | null
+          birth_date?: string | null
+          cep?: string | null
+          city?: string | null
+          cpf?: string | null
+          created_at?: string
+          desired_employment_type?: Database["public"]["Enums"]["employment_type"]
+          email?: string
+          full_name?: string
+          id?: string
+          neighborhood?: string | null
+          phone?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rg?: string | null
+          specialty?: string | null
+          state?: string | null
+          status?: Database["public"]["Enums"]["signup_status"]
           updated_at?: string
         }
         Relationships: []
@@ -347,6 +502,8 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "supervisor" | "senior_tech" | "tech"
+      employment_type: "field" | "clt" | "pj" | "internal"
+      signup_status: "pending" | "approved" | "rejected"
       ticket_priority: "low" | "medium" | "high" | "critical"
       ticket_status:
         | "open"
@@ -486,6 +643,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "supervisor", "senior_tech", "tech"],
+      employment_type: ["field", "clt", "pj", "internal"],
+      signup_status: ["pending", "approved", "rejected"],
       ticket_priority: ["low", "medium", "high", "critical"],
       ticket_status: [
         "open",
