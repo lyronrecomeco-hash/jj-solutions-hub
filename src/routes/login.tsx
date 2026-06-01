@@ -173,13 +173,3 @@ function LoginPage() {
   );
 }
 
-function Feature({ icon, title }: { icon: React.ReactNode; title: string }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3 backdrop-blur-sm">
-      <div className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded-md bg-white/10 text-white/90">
-        {icon}
-      </div>
-      <div className="text-[12px] font-medium leading-tight text-white/90">{title}</div>
-    </div>
-  );
-}
