@@ -145,6 +145,7 @@ function TicketsPage() {
             <Tabs value={tab} onValueChange={setTab} className="flex-1">
               <TabsList className="bg-surface-muted">
                 <TabsTrigger value="all">Todos</TabsTrigger>
+                <TabsTrigger value="unassigned">Sem responsável</TabsTrigger>
                 <TabsTrigger value="open">Abertos</TabsTrigger>
                 <TabsTrigger value="in_progress">Em andamento</TabsTrigger>
                 <TabsTrigger value="waiting_part">Aguardando peça</TabsTrigger>
