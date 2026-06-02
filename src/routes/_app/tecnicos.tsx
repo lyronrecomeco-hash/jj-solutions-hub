@@ -163,6 +163,7 @@ function TechniciansPage() {
       <TechnicianFormSheet open={addOpen} onOpenChange={setAddOpen} />
       <TechnicianViewSheet tech={viewFor} open={!!viewFor} onOpenChange={(o) => !o && setViewFor(null)} />
       <CrachaModal tech={badgeFor} open={!!badgeFor} onOpenChange={(o) => !o && setBadgeFor(null)} />
+      <TrackingModal tech={trackFor ? { id: trackFor.id, full_name: trackFor.full_name } : null} open={!!trackFor} onOpenChange={(o) => !o && setTrackFor(null)} />
       <EditDialog row={editFor} onClose={() => setEditFor(null)} onSaved={() => qc.invalidateQueries({ queryKey: ["technicians"] })} />
       <StatsDialog row={statsFor} onClose={() => setStatsFor(null)} />
 
