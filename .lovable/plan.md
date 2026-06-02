@@ -1,100 +1,84 @@
+## Plano de correção preciso
 
-Plano de finalização sênior — dividido em 7 fases. Tudo sincronizado via React Query + Realtime, sem reloads, sem mocks.
+### 1) Remover o ícone de mensagens do topo
+- Remover o componente `MessagesBell` do header do painel.
+- Remover também o import dele em `_app.tsx`.
+- Manter o sino de notificações normal, sem alterar o fluxo existente.
 
----
+### 2) Badge vermelho no menu “Mensagens” da sidebar
+- Reaproveitar a contagem de mensagens não lidas.
+- Mostrar o badge vermelho diretamente no item “Mensagens” do menu lateral, acima/ao lado do nome conforme o espaço do sidebar permitir.
+- No estado colapsado, manter o badge pequeno sobre o ícone.
+- Não criar outro ícone no topo.
 
-## Fase 1 — Correção do "Novo chamado" e fluidez geral
+### 3) Corrigir “Meu Perfil” no painel do técnico
+- Ajustar o container para ocupar a largura útil do layout corretamente, sem ficar jogado para a direita e sem centralizar tudo.
+- Usar grid responsivo: cartão de foto/dados em uma coluna lateral controlada e formulário usando o restante do espaço no desktop.
+- No mobile, empilhar tudo com padding correto, sem sobras laterais e sem quebrar campos.
 
-**Problema:** ao criar chamado novo, ele não aparece imediatamente; navegação entre telas dispara "atualizações" visuais (flicker).
+### 4) Remover o bloco extra de “Chamados a atribuir” da tela Chamados
+- Remover apenas o bloco destacado mostrado no print dentro de `Chamados`.
+- Não remover a rota nem o menu “Atribuição”.
+- Manter a sincronização de atribuição funcionando via lista principal e realtime.
 
-- Em `chamados.tsx`:
-  - `useMutation` de criação deve devolver a linha criada (`.insert(...).select().single()`) e fazer `qc.setQueryData(["tickets-list"], old => [novo, ...old])` (optimistic insert) antes do invalidate.
-  - Adicionar `staleTime: 30_000` e `refetchOnWindowFocus: false` em todas as queries de lista (tickets, dashboard, técnicos, clientes) para acabar com o "pisca ao trocar de aba".
-- Realtime já existe; manter, mas reduzir invalidations duplicadas.
-- Blindar erros: try/catch + toast com mensagem real do Supabase; nunca falhar silencioso.
-- Em `__root.tsx`, garantir que o `router.invalidate()` do `onAuthStateChange` só dispare em eventos `SIGNED_IN`/`SIGNED_OUT`, não em `TOKEN_REFRESHED` (causa do "atualiza do nada").
+### 5) Remover “Sem responsável” da aba/filtro de Chamados
+- Tirar o filtro/aba “Sem responsável” da tela de Chamados.
+- Manter chamados sem técnico aparecendo normalmente em “Todos” e nos status corretos.
+- Manter a aba “Atribuição” separada intacta.
 
-## Fase 2 — Dashboard: filtros Hoje / 7 dias / 30 dias
+### 6) Popover do Kanban no lugar certo
+- Tirar o popover do botão/área errada do card.
+- Colocar o popover na setinha do topo do card/coluna indicada pelo comportamento atual, sem interferir no arrastar do Kanban.
+- Manter ações: abrir chamado, atribuir/reatribuir, avançar status, encerrar, cancelar.
 
-- Estado `range: "today" | "7d" | "30d"` no `DashboardPage`.
-- Botões controlados (variant ativa = `default`, inativos = `outline`).
-- `useMemo` recomputa `counts`, `statusData`, `trendData`, `productivityData` aplicando o range sobre `created_at`.
-- `trendData` ajusta janela (1 / 7 / 30 dias) dinamicamente.
+### 7) Chamados no painel técnico 100% responsivo
+- Para técnico comum, a tela `Chamados` será lista normal, sem Kanban.
+- Layout mobile com cards/lista limpa, sem tabela apertada e sem overflow horizontal.
+- Chamado atribuído ao técnico deve aparecer automaticamente pela query + realtime, sem delay perceptível.
+- Staff/admin continuam com opção de lista/Kanban.
 
-## Fase 3 — Unificar "Atribuição" dentro de "Chamados" + modal de atribuir
+### 8) Mensagens no mobile
+- Ajustar o chat do técnico para ocupar a tela como conversa nativa, não como modal.
+- Reduzir o placeholder para `Escreva algo.`
+- Fixar área de digitação no rodapé do chat, com altura segura para mobile.
+- Melhorar scroll e largura das bolhas para não estourar a tela.
 
-- Manter item e rota "Atribuição" no sidebar, sem remover nada; a mesma fila de chamados sem técnico também aparece dentro de `Chamados`.
-- Em `chamados.tsx`:
-  - Nova aba/filtro "Sem responsável" (status open + assigned_to null).
-  - **Card do Kanban:** o ícone "três pontinhos" abre um `Popover` (estilo do print enviado) com as ações:
-    - Abrir chamado
-    - Atribuir técnico → abre `Dialog` listando todos os técnicos (avatar, nome, especialidade) com busca; ao clicar, faz `update tickets set assigned_to, status='in_progress'`.
-    - Mover para próximo status (Aberto → Em andamento → Resolvido)
-    - Encerrar chamado
-    - Imprimir/exportar
-  - Mutation com optimistic update + invalidate de `["tickets-list"]` e `["dashboard-tickets"]`. Realtime cuida do espelhamento em outros dispositivos.
-- A página `/atribuicao` continua acessível mas exibe a mesma lista de chamados sem técnico, com o mesmo botão "Atribuir" abrindo o mesmo modal compartilhado (`<AssignTechDialog />` reutilizável em `src/components/assign-tech-dialog.tsx`).
+### 9) Eliminar flicker/recarregamento rápido ao trocar de tela
+- Remover qualquer navegação manual desnecessária que cause refresh visual.
+- Trocar navegações problemáticas por `Link`/`navigate` interno do TanStack quando aplicável.
+- Evitar troca para tela de loading quando o usuário e sessão já existem.
+- Ajustar queries sensíveis com `staleTime`, `refetchOnWindowFocus: false` e cache estável, sem deixar lento.
+- Verificar o hook de permissões/sidebar para impedir “pisca” de menu ao navegar.
 
-## Fase 4 — "Meu Perfil" para técnico
+### 10) Administradores: ações com editar, ver e excluir
+- Na lista de administradores, substituir o clique no badge por uma área de ações clara.
+- Adicionar três botões com ícones:
+  - editar
+  - ver
+  - excluir
+- Manter a confirmação antes de excluir/revogar acesso.
+- Não alterar permissões além do necessário para essas ações visuais/funcionais.
 
-- Nova rota `/_app/meu-perfil.tsx` (e item no sidebar do técnico: ícone `UserCircle`, label "Meu Perfil").
-- Form completo editável: foto (upload em `technician-photos/{userId}/avatar.{ext}`), nome, telefone, especialidade, cargo, bio, endereço.
-- Salva em `profiles` via `update().eq("id", user.id)`.
-- Ao salvar, invalida `["profile", user.id]` e `["tech", user.id]` → o crachá puxa `photo_url` e `full_name` automaticamente (já lê de `profiles`).
-- Preview da foto antes do upload, compressão (canvas → JPEG 80%, max 800px) para economizar storage.
+### 11) Suporte para deploy na Vercel
+- Ajustar configuração sem quebrar o preview atual do Lovable.
+- Usar Nitro/TanStack Start com preset Vercel somente quando o ambiente for Vercel.
+- Adicionar configuração mínima de deploy se necessário, mantendo `bun run build` como build command.
+- Não expor secrets nem alterar `.env`.
 
-## Fase 5 — Crachá: limpeza visual + QR funcional
-
-- Em `cracha-card.tsx`:
-  - Remover a bolinha verde "online" (linhas 89-98).
-  - `qrValue` passa a apontar para o domínio real publicado: `${window.location.origin}/validar/${tech.id}` (em SSR fallback para URL Lovable).
-- Nova rota **pública** `src/routes/validar.$id.tsx` (sem `_app`, sem auth):
-  - Loader carrega via `createServerFn` (admin client, somente campos públicos: nome, foto, cargo, especialidade, matrícula, vínculo, status).
-  - Renderiza um `CrachaCard` centralizado + selo "Identidade validada · JJ Informática" + data/hora da validação.
-  - Tratamento de não encontrado: tela "Crachá inválido ou revogado".
-- Atualiza também o link do crachá no modal de impressão.
-
-## Fase 6 — Varredura de funcionalidades incompletas
-
-Auditoria já feita no painel. Pendências encontradas e ações:
-
-- **Busca global no header:** input existe mas não faz nada → ligar a `useState` + filtro em `chamados`/`tecnicos` via navegação (`/chamados?q=...`).
-- **Mensagens:** verificar realtime do mural (já tem trigger); garantir scroll-to-bottom em nova mensagem.
-- **Monitoramento:** confirmar que `technician_locations` está sendo atualizado e mapa renderiza últimos pontos.
-- **Configurações → Notificações:** já está salvando, validar todos os toggles.
-- **Logs:** paginação + filtro por action/level.
-- **Relatórios:** confirmar geração PDF/Excel com filtros aplicados.
-- **Cadastros pendentes:** garantir que "Atribuir login" recarrega lista após criar.
-
-## Fase 7 — QA final e blindagem
-
-- Adicionar `errorComponent` em rotas críticas (`chamados`, `dashboard`, `meu-perfil`, `validar.$id`).
-- Wrappers `try/catch` em todas as mutations com toast de erro claro.
-- Smoke test manual:
-  1. Criar chamado → aparece em lista e Kanban sem reload.
-  2. Arrastar card / usar popover "Atribuir" → atualiza em `/atribuicao` e dashboard.
-  3. Filtro Hoje/7d/30d no dashboard altera números.
-  4. Técnico troca foto → crachá reflete em tempo real.
-  5. Escanear QR do crachá → abre `/validar/{id}` com dados corretos.
-  6. Navegação entre telas sem flicker.
-
----
-
-### Arquivos criados
-- `src/routes/validar.$id.tsx`
+### Arquivos que serão tocados
+- `src/routes/_app.tsx`
+- `src/components/app-sidebar.tsx`
+- `src/components/messages-bell.tsx` será removido se não ficar mais usado
 - `src/routes/_app/meu-perfil.tsx`
-- `src/components/assign-tech-dialog.tsx`
-- `src/components/ticket-card-menu.tsx` (popover do Kanban)
-- `src/lib/api/validate.functions.ts`
+- `src/routes/_app/chamados.tsx`
+- `src/routes/_app/mensagens.tsx`
+- `src/routes/_app/administradores.tsx`
+- `src/hooks/use-permissions.tsx` se for necessário para parar o flicker
+- `vite.config.ts` e possivelmente `vercel.json` para deploy Vercel
 
-### Arquivos editados
-- `src/routes/_app/chamados.tsx` (mutation + popover + filtro sem responsável)
-- `src/routes/_app/dashboard.tsx` (range filter funcional)
-- `src/routes/_app/atribuicao.tsx` (redirect + reuso do AssignTechDialog)
-- `src/components/app-sidebar.tsx` (remover Atribuição; adicionar Meu Perfil para técnicos)
-- `src/components/cracha-card.tsx` (remover bolinha verde, QR para /validar)
-- `src/routes/__root.tsx` (onAuthStateChange só em SIGNED_IN/OUT)
-- `src/routes/_app.tsx` (busca global ligada)
-
-### Correção de banco aplicada
-- Adicionadas relações seguras entre chamados, clientes e perfis para evitar erro de schema cache ao criar/listar chamados com técnico atribuído.
+### Garantias
+- Não remover “Atribuição”.
+- Não remover menus existentes além do ícone extra de mensagens no topo.
+- Não mexer em banco de dados sem necessidade.
+- Não alterar fluxo de autenticação além do necessário para parar flicker.
+- Validar com build/teste automático do harness após implementação.
