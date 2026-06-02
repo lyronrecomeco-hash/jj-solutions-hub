@@ -319,39 +319,166 @@ function Column({ col, items }: { col: { key: string; label: string; stripe: str
 function KanbanCard({ t, dragging }: { t: Ticket; dragging?: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: t.id });
   const p = PRIORITY[t.priority];
+  const qc = useQueryClient();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+
+  const NEXT_STATUS: Record<string, { key: string; label: string } | null> = {
+    open: { key: "in_progress", label: "Iniciar atendimento" },
+    in_progress: { key: "resolved", label: "Marcar como resolvido" },
+    waiting_part: { key: "in_progress", label: "Voltar para em andamento" },
+    resolved: { key: "closed", label: "Finalizar e arquivar" },
+    not_resolved: { key: "open", label: "Reabrir" },
+    cancelled: { key: "open", label: "Reabrir" },
+    closed: null,
+  };
+  const next = NEXT_STATUS[t.status];
+
+  const changeStatus = useMutation({
+    mutationFn: async (status: string) => {
+      const patch: any = { status };
+      if (status === "in_progress") patch.started_at = new Date().toISOString();
+      if (["resolved", "not_resolved", "cancelled", "closed"].includes(status)) {
+        patch.closed_at = new Date().toISOString();
+      }
+      const { error } = await supabase.from("tickets").update(patch).eq("id", t.id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tickets-list"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-tickets"] });
+      qc.invalidateQueries({ queryKey: ["unassigned-tickets"] });
+      setMenuOpen(false);
+    },
+    onError: (e: any) => toast.error("Falha", { description: e?.message }),
+  });
+
   return (
-    <div
-      ref={setNodeRef}
-      {...attributes}
-      {...listeners}
+    <>
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "group relative rounded-md border border-border bg-surface px-2.5 py-2 shadow-soft transition",
+          isDragging && "opacity-50",
+          dragging && "rotate-1 shadow-lg"
+        )}
+      >
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing"
+        >
+          <div className="flex items-center justify-between gap-1.5">
+            <span className="font-mono text-[11px] font-bold tracking-tight">{t.ticket_number}</span>
+            <Badge variant="outline" className={cn("h-[18px] gap-1 px-1.5 text-[9px] font-medium", p.cls)}>
+              <span className={cn("h-1 w-1 rounded-full", p.dot)} />
+              {p.label}
+            </Badge>
+          </div>
+          <div className="mt-1 line-clamp-1 text-[12px] font-medium leading-snug">{t.title}</div>
+          <div className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
+            {t.clients?.company ?? t.contact_name ?? "—"}
+          </div>
+          <div className="mt-1.5 flex items-center justify-between gap-2">
+            <span className="font-mono text-[10px] text-muted-foreground">
+              {new Date(t.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+            {t.profiles?.full_name ? (
+              <span className="truncate rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
+                {t.profiles.full_name.split(" ")[0]}
+              </span>
+            ) : (
+              <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700 dark:text-amber-300">
+                Sem técnico
+              </span>
+            )}
+          </div>
+        </div>
+
+        <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-md text-muted-foreground opacity-0 transition hover:bg-surface-muted hover:text-foreground group-hover:opacity-100 data-[state=open]:opacity-100"
+              aria-label="Ações"
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-56 p-1">
+            <MenuItem icon={ExternalLink} label="Abrir chamado" to={`/chamados/${t.id}`} onClose={() => setMenuOpen(false)} />
+            <MenuButton
+              icon={UserPlus}
+              label={t.assigned_to ? "Reatribuir técnico" : "Atribuir técnico"}
+              onClick={() => { setMenuOpen(false); setAssignOpen(true); }}
+            />
+            {next && (
+              <MenuButton
+                icon={ArrowRightCircle}
+                label={next.label}
+                onClick={() => changeStatus.mutate(next.key)}
+                disabled={changeStatus.isPending}
+              />
+            )}
+            {!["closed", "resolved", "cancelled"].includes(t.status) && (
+              <MenuButton
+                icon={CheckCircle}
+                label="Encerrar como resolvido"
+                onClick={() => changeStatus.mutate("resolved")}
+                disabled={changeStatus.isPending}
+              />
+            )}
+            {t.status !== "cancelled" && (
+              <MenuButton
+                icon={XCircle}
+                label="Cancelar chamado"
+                tone="danger"
+                onClick={() => changeStatus.mutate("cancelled")}
+                disabled={changeStatus.isPending}
+              />
+            )}
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <AssignTechDialog
+        ticketId={assignOpen ? t.id : null}
+        ticketNumber={t.ticket_number}
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+      />
+    </>
+  );
+}
+
+function MenuItem({ icon: Icon, label, to, onClose }: { icon: any; label: string; to: string; onClose: () => void }) {
+  return (
+    <Link
+      to={to}
+      onClick={onClose}
+      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface-muted"
+    >
+      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+      {label}
+    </Link>
+  );
+}
+
+function MenuButton({ icon: Icon, label, onClick, disabled, tone }: { icon: any; label: string; onClick: () => void; disabled?: boolean; tone?: "danger" }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
       className={cn(
-        "group relative cursor-grab rounded-md border border-border bg-surface px-2.5 py-2 shadow-soft transition active:cursor-grabbing",
-        isDragging && "opacity-50",
-        dragging && "rotate-1 shadow-lg"
+        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition hover:bg-surface-muted disabled:opacity-50",
+        tone === "danger" && "text-destructive hover:bg-destructive/10"
       )}
     >
-      <div className="flex items-center justify-between gap-1.5">
-        <span className="font-mono text-[11px] font-bold tracking-tight">{t.ticket_number}</span>
-        <Badge variant="outline" className={cn("h-[18px] gap-1 px-1.5 text-[9px] font-medium", p.cls)}>
-          <span className={cn("h-1 w-1 rounded-full", p.dot)} />
-          {p.label}
-        </Badge>
-      </div>
-      <Link to="/chamados/$id" params={{ id: t.id }} className="mt-1 block">
-        <div className="line-clamp-1 text-[12px] font-medium leading-snug hover:underline">{t.title}</div>
-      </Link>
-      <div className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
-        {t.clients?.company ?? t.contact_name ?? "—"}
-      </div>
-      <div className="mt-1.5 flex items-center justify-between gap-2">
-        <span className="font-mono text-[10px] text-muted-foreground">
-          {new Date(t.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-        </span>
-        {t.profiles?.full_name && (
-          <span className="truncate rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">{t.profiles.full_name.split(" ")[0]}</span>
-        )}
-      </div>
-    </div>
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </button>
   );
 }
 
