@@ -46,15 +46,17 @@ const STATUS_LABEL: Record<string, string> = {
   open: "Aberto", in_progress: "Em andamento", waiting_part: "Aguardando peça",
   waiting_client: "Aguardando cliente", resolved: "Resolvido",
   partially_resolved: "Parcial", not_resolved: "Não resolvido", cancelled: "Cancelado",
+  closed: "Finalizado",
 };
 
-const KANBAN_COLUMNS: { key: string; label: string; cls: string }[] = [
-  { key: "open", label: "Abertos", cls: "border-info/30 bg-info/5" },
-  { key: "in_progress", label: "Em andamento", cls: "border-amber-500/30 bg-amber-500/5" },
-  { key: "waiting_part", label: "Aguardando peça", cls: "border-purple-500/30 bg-purple-500/5" },
-  { key: "resolved", label: "Resolvidos", cls: "border-success/30 bg-success/5" },
-  { key: "not_resolved", label: "Não resolvidos", cls: "border-destructive/30 bg-destructive/5" },
-  { key: "cancelled", label: "Cancelados", cls: "border-border bg-muted/30" },
+const KANBAN_COLUMNS: { key: string; label: string; stripe: string; dot: string }[] = [
+  { key: "open",               label: "Abertos",         stripe: "bg-info",         dot: "text-info" },
+  { key: "in_progress",        label: "Em andamento",    stripe: "bg-amber-500",    dot: "text-amber-500" },
+  { key: "waiting_part",       label: "Aguardando peça", stripe: "bg-purple-500",   dot: "text-purple-500" },
+  { key: "resolved",           label: "Resolvidos",      stripe: "bg-success",      dot: "text-success" },
+  { key: "not_resolved",       label: "Não resolvidos",  stripe: "bg-destructive",  dot: "text-destructive" },
+  { key: "cancelled",          label: "Cancelados",      stripe: "bg-muted-foreground/50", dot: "text-muted-foreground" },
+  { key: "closed",             label: "Finalizados",     stripe: "bg-primary",      dot: "text-primary" },
 ];
 
 const PRIORITY: Record<Ticket["priority"], { label: string; cls: string; dot: string }> = {
@@ -220,7 +222,7 @@ function KanbanBoard({ tickets }: { tickets: Ticket[] }) {
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const patch: any = { status };
       if (status === "in_progress") patch.started_at = new Date().toISOString();
-      if (["resolved", "not_resolved", "cancelled", "partially_resolved"].includes(status)) {
+      if (["resolved", "not_resolved", "cancelled", "partially_resolved", "closed"].includes(status)) {
         patch.closed_at = new Date().toISOString();
       }
       const { error } = await supabase.from("tickets").update(patch).eq("id", id);
@@ -259,7 +261,7 @@ function KanbanBoard({ tickets }: { tickets: Ticket[] }) {
   return (
     <div className="overflow-x-auto p-3">
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-        <div className="flex min-w-max gap-3">
+        <div className="flex gap-3 min-w-max xl:min-w-0">
           {KANBAN_COLUMNS.map((col) => {
             const items = tickets.filter((t) => t.status === col.key);
             return <Column key={col.key} col={col} items={items} />;
@@ -273,27 +275,37 @@ function KanbanBoard({ tickets }: { tickets: Ticket[] }) {
   );
 }
 
-function Column({ col, items }: { col: { key: string; label: string; cls: string }; items: Ticket[] }) {
+function Column({ col, items }: { col: { key: string; label: string; stripe: string; dot: string }; items: Ticket[] }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.key });
+  const [collapsed, setCollapsed] = useState(false);
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        "flex w-72 shrink-0 flex-col rounded-xl border p-2.5 transition",
-        col.cls,
-        isOver && "ring-2 ring-primary"
+        "flex w-[210px] xl:w-auto xl:flex-1 xl:min-w-[170px] shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-surface-muted/40 transition",
+        isOver && "ring-2 ring-primary ring-offset-1 ring-offset-background"
       )}
     >
-      <div className="mb-2 flex items-center justify-between px-1">
-        <div className="text-xs font-semibold uppercase tracking-wider">{col.label}</div>
-        <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{items.length}</Badge>
-      </div>
-      <div className="flex flex-col gap-2">
-        {items.length === 0 && (
-          <div className="rounded-lg border border-dashed border-border/60 py-6 text-center text-[11px] text-muted-foreground">Vazio</div>
-        )}
-        {items.map((t) => <KanbanCard key={t.id} t={t} />)}
-      </div>
+      <div className={cn("h-[3px] w-full", col.stripe)} />
+      <button
+        onClick={() => setCollapsed((c) => !c)}
+        className="flex items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-surface-muted/60"
+      >
+        <span className="truncate text-[11px] font-bold uppercase tracking-wider text-foreground/80">{col.label}</span>
+        <span className="flex items-center gap-1.5">
+          <span className="rounded-md bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">{items.length}</span>
+          <svg className={cn("h-3 w-3 text-muted-foreground transition-transform", collapsed && "-rotate-90")} viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" /></svg>
+        </span>
+      </button>
+      {!collapsed && (
+        <div className="flex min-h-[120px] flex-col gap-1.5 p-1.5 pt-0">
+          {items.length === 0 ? (
+            <div className="m-1 grid flex-1 place-items-center rounded-md border border-dashed border-border/60 py-8 text-center text-[11px] text-muted-foreground">
+              Solte chamados aqui
+            </div>
+          ) : items.map((t) => <KanbanCard key={t.id} t={t} />)}
+        </div>
+      )}
     </div>
   );
 }
@@ -307,26 +319,30 @@ function KanbanCard({ t, dragging }: { t: Ticket; dragging?: boolean }) {
       {...attributes}
       {...listeners}
       className={cn(
-        "group relative cursor-grab rounded-lg border border-border bg-surface p-3 shadow-soft transition active:cursor-grabbing",
+        "group relative cursor-grab rounded-md border border-border bg-surface px-2.5 py-2 shadow-soft transition active:cursor-grabbing",
         isDragging && "opacity-50",
-        dragging && "rotate-2 shadow-lg"
+        dragging && "rotate-1 shadow-lg"
       )}
     >
-      <span className={cn("absolute left-0 top-0 h-full w-1 rounded-l-lg", p.dot)} />
-      <div className="flex items-start justify-between gap-2 pl-1.5">
-        <span className="font-mono text-[10px] font-medium text-muted-foreground">{t.ticket_number}</span>
-        <Badge variant="outline" className={cn("h-4 px-1 text-[9px]", p.cls)}>{p.label}</Badge>
+      <div className="flex items-center justify-between gap-1.5">
+        <span className="font-mono text-[11px] font-bold tracking-tight">{t.ticket_number}</span>
+        <Badge variant="outline" className={cn("h-[18px] gap-1 px-1.5 text-[9px] font-medium", p.cls)}>
+          <span className={cn("h-1 w-1 rounded-full", p.dot)} />
+          {p.label}
+        </Badge>
       </div>
-      <Link to="/chamados/$id" params={{ id: t.id }} className="mt-1 block pl-1.5">
-        <div className="line-clamp-2 text-sm font-semibold leading-snug hover:underline">{t.title}</div>
+      <Link to="/chamados/$id" params={{ id: t.id }} className="mt-1 block">
+        <div className="line-clamp-1 text-[12px] font-medium leading-snug hover:underline">{t.title}</div>
       </Link>
-      <div className="mt-1.5 truncate pl-1.5 text-[11px] text-muted-foreground">
+      <div className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
         {t.clients?.company ?? t.contact_name ?? "—"}
       </div>
-      <div className="mt-2 flex items-center justify-between pl-1.5">
-        <span className="text-[10px] text-muted-foreground">{new Date(t.created_at).toLocaleDateString("pt-BR")}</span>
+      <div className="mt-1.5 flex items-center justify-between gap-2">
+        <span className="font-mono text-[10px] text-muted-foreground">
+          {new Date(t.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+        </span>
         {t.profiles?.full_name && (
-          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">{t.profiles.full_name.split(" ")[0]}</span>
+          <span className="truncate rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">{t.profiles.full_name.split(" ")[0]}</span>
         )}
       </div>
     </div>
