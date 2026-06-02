@@ -4,7 +4,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Search, Paperclip, Send, Image as ImageIcon, Video, Loader2,
   MessageSquare, Check, CheckCheck, Eye, ArrowLeft, Plus, Ticket as TicketIcon,
-  ExternalLink,
+  ExternalLink, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,6 +15,10 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -36,8 +40,21 @@ function MessagesPage() {
   const [q, setQ] = useState("");
   const [chatFor, setChatFor] = useState<Tech | null>(null);
   const [chatTicketId, setChatTicketId] = useState<string | null>(null);
-
-  const { data: techs = [], isLoading } = useQuery({
+  const [removeFor, setRemoveFor] = useState<Tech | null>(null);
+  const qcDel = useQueryClient();
+  const delThread = useMutation({
+    mutationFn: async (techId: string) => {
+      const { error } = await (supabase.from("technician_messages") as any).delete().eq("technician_id", techId);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast.success("Conversa excluída");
+      qcDel.invalidateQueries({ queryKey: ["msg-summaries"] });
+      qcDel.invalidateQueries({ queryKey: ["tech-atend-list"] });
+      setRemoveFor(null);
+    },
+    onError: (e: any) => toast.error("Falha ao excluir", { description: e?.message }),
+  });
     queryKey: ["msg-techs"],
     queryFn: async () => {
       const { data } = await supabase.from("profiles")
