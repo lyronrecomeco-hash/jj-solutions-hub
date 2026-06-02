@@ -23,6 +23,7 @@ const NOTIF_TYPES = [
 function SettingsPage() {
   const { user, isAdmin } = useAuth();
   const [company, setCompany] = useState("JJ Informática");
+  const [cnpj, setCnpj] = useState("");
   const [contact, setContact] = useState("contato@jjinformatica.com.br");
   const [slaHours, setSlaHours] = useState("24");
   const [prefs, setPrefs] = useState<Record<string, boolean>>({});
@@ -37,6 +38,7 @@ function SettingsPage() {
         const org = settings?.find((s) => s.key === "organization")?.value as any;
         const sla = settings?.find((s) => s.key === "sla")?.value as any;
         if (org?.name) setCompany(org.name);
+        if (org?.cnpj) setCnpj(org.cnpj);
         if (org?.contact_email) setContact(org.contact_email);
         if (sla?.default_hours) setSlaHours(String(sla.default_hours));
 
@@ -58,7 +60,7 @@ function SettingsPage() {
     try {
       if (isAdmin) {
         await supabase.from("app_settings").upsert([
-          { key: "organization", value: { name: company, contact_email: contact }, updated_by: user.id },
+          { key: "organization", value: { name: company, cnpj, contact_email: contact }, updated_by: user.id },
           { key: "sla", value: { default_hours: Number(slaHours) || 24 }, updated_by: user.id },
         ], { onConflict: "key" });
       }
@@ -97,7 +99,10 @@ function SettingsPage() {
             <Row label="Nome da empresa" hint="Aparece nos relatórios e e-mails.">
               <Input value={company} onChange={(e) => setCompany(e.target.value)} disabled={!isAdmin} className="max-w-md" />
             </Row>
-            <Row label="E-mail de contato" hint="Resposta padrão para comunicações externas.">
+            <Row label="CNPJ" hint="Exibido no verso do crachá dos técnicos.">
+              <Input value={cnpj} onChange={(e) => setCnpj(e.target.value)} disabled={!isAdmin} placeholder="00.000.000/0001-00" className="max-w-md" />
+            </Row>
+            <Row label="E-mail de contato" hint="Atualizado automaticamente no verso do crachá ao salvar.">
               <Input value={contact} onChange={(e) => setContact(e.target.value)} disabled={!isAdmin} className="max-w-md" />
             </Row>
           </Card>
