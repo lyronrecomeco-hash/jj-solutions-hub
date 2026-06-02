@@ -89,6 +89,7 @@ async function hydrateTickets(rows: any[]): Promise<Ticket[]> {
 
 function TicketsPage() {
   const qc = useQueryClient();
+  const { isStaff } = useAuth();
   const [q, setQ] = useState("");
   const [tab, setTab] = useState("all");
   const [priority, setPriority] = useState<string>("all");
@@ -136,6 +137,7 @@ function TicketsPage() {
     resolved: tickets.filter((t) => t.status === "resolved").length,
     critical: tickets.filter((t) => t.priority === "critical").length,
   };
+  const unassignedTickets = tickets.filter((t) => !t.assigned_to && !["cancelled", "closed"].includes(t.status));
 
   return (
     <div className="w-full space-y-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
@@ -154,6 +156,8 @@ function TicketsPage() {
         <Mini label="Resolvidos" value={counts.resolved} icon={CheckCircle2} tone="success" />
         <Mini label="Críticos" value={counts.critical} icon={AlertTriangle} tone="destructive" />
       </div>
+
+      {isStaff && <UnassignedStrip tickets={unassignedTickets} />}
 
       <div className="rounded-xl border border-border bg-surface shadow-soft">
         <div className="flex flex-wrap items-center gap-3 border-b border-border p-3">
@@ -235,6 +239,45 @@ function TicketRow({ t }: { t: Ticket }) {
         <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
       </Link>
     </li>
+  );
+}
+
+function UnassignedStrip({ tickets }: { tickets: Ticket[] }) {
+  const [target, setTarget] = useState<Ticket | null>(null);
+  if (tickets.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-border bg-surface shadow-soft">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
+        <div>
+          <h2 className="text-sm font-semibold">Chamados a atribuir</h2>
+          <p className="text-xs text-muted-foreground">Mesma fila da aba Atribuição, sincronizada aqui em Chamados.</p>
+        </div>
+        <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300">{tickets.length} sem técnico</Badge>
+      </div>
+      <div className="grid gap-2 p-3 md:grid-cols-2 xl:grid-cols-3">
+        {tickets.slice(0, 6).map((t) => (
+          <div key={t.id} className="flex min-w-0 items-center gap-3 rounded-lg border border-border bg-surface-muted/35 p-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[11px] font-medium text-muted-foreground">{t.ticket_number}</span>
+                <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px]", PRIORITY[t.priority].cls)}>{PRIORITY[t.priority].label}</Badge>
+              </div>
+              <div className="mt-0.5 truncate text-sm font-semibold">{t.title}</div>
+              <div className="truncate text-xs text-muted-foreground">{t.clients?.company ?? t.contact_name ?? "Sem cliente"}</div>
+            </div>
+            <Button size="sm" onClick={() => setTarget(t)}>
+              <UserPlus className="h-3.5 w-3.5" /> Atribuir
+            </Button>
+          </div>
+        ))}
+      </div>
+      <AssignTechDialog
+        ticketId={target?.id ?? null}
+        ticketNumber={target?.ticket_number}
+        open={!!target}
+        onOpenChange={(o) => !o && setTarget(null)}
+      />
+    </div>
   );
 }
 
