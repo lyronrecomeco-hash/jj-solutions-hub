@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Download, RotateCw, ShieldCheck } from "lucide-react";
-import html2canvas from "html2canvas";
+import { motion } from "framer-motion";
+import { Download, RotateCw, ShieldCheck, Loader2 } from "lucide-react";
+import { toPng } from "html-to-image";
+import { toast } from "sonner";
 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -16,17 +17,30 @@ interface Props {
 export function CrachaModal({ tech, open, onOpenChange }: Props) {
   const [flipped, setFlipped] = useState(false);
   const [auto, setAuto] = useState(true);
+  const [downloading, setDownloading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   async function download() {
-    if (!cardRef.current) return;
-    const canvas = await html2canvas(cardRef.current, {
-      scale: 4, backgroundColor: null, useCORS: true, logging: false,
-    });
-    const link = document.createElement("a");
-    link.href = canvas.toDataURL("image/png", 1);
-    link.download = `cracha-${tech?.full_name?.replace(/\s+/g, "-").toLowerCase() ?? "tecnico"}.png`;
-    link.click();
+    if (!cardRef.current || !tech) return;
+    setDownloading(true);
+    try {
+      // html-to-image lida com oklch nativamente e produz PNG de alta resolução.
+      const dataUrl = await toPng(cardRef.current, {
+        pixelRatio: 4,
+        cacheBust: true,
+        backgroundColor: "transparent",
+        skipFonts: false,
+      });
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `cracha-${tech.full_name.replace(/\s+/g, "-").toLowerCase()}.png`;
+      link.click();
+      toast.success("Crachá baixado");
+    } catch (err: any) {
+      toast.error("Falha ao baixar", { description: err?.message });
+    } finally {
+      setDownloading(false);
+    }
   }
 
   if (!tech) return null;
@@ -34,27 +48,27 @@ export function CrachaModal({ tech, open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-2xl overflow-hidden border-0 bg-transparent p-0 shadow-none [&>button]:text-white/70 [&>button]:hover:text-white"
+        className="max-h-[95vh] w-[95vw] max-w-2xl overflow-y-auto border-0 bg-transparent p-0 shadow-none [&>button]:text-white/70 [&>button]:hover:text-white"
       >
-        <div className="relative rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-8 shadow-2xl">
-          {/* glow */}
-          <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-50"
-            style={{ background: "radial-gradient(circle at 50% 30%, oklch(0.55 0.16 258 / 0.35), transparent 60%)" }} />
+        <div className="relative rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-4 shadow-2xl sm:p-8">
+          <div
+            className="pointer-events-none absolute inset-0 rounded-2xl opacity-50"
+            style={{ background: "radial-gradient(circle at 50% 30%, rgba(96,165,250,0.35), transparent 60%)" }}
+          />
 
           <div className="relative">
-            <div className="mb-6 text-center text-white">
+            <div className="mb-4 text-center text-white sm:mb-6">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider">
                 <ShieldCheck className="h-3 w-3" /> Crachá Digital
               </div>
-              <h2 className="mt-3 font-display text-xl font-semibold tracking-tight">{tech.full_name}</h2>
-              <p className="mt-1 text-[12px] text-white/55">Clique no crachá para virá-lo · vista 3D</p>
+              <h2 className="mt-3 font-display text-lg font-semibold tracking-tight sm:text-xl">{tech.full_name}</h2>
+              <p className="mt-1 text-[11px] text-white/55 sm:text-[12px]">Clique no crachá para virá-lo · vista 3D</p>
             </div>
 
-            {/* 3D wrapper */}
             <div className="flex items-center justify-center [perspective:1400px]">
               <motion.div
                 className="relative cursor-pointer [transform-style:preserve-3d]"
-                onClick={() => setFlipped((f) => !f)}
+                onClick={() => { setAuto(false); setFlipped((f) => !f); }}
                 animate={
                   auto && !flipped
                     ? { rotateY: [-12, 12, -12], rotateX: [4, -4, 4] }
@@ -65,14 +79,12 @@ export function CrachaModal({ tech, open, onOpenChange }: Props) {
                     ? { duration: 8, repeat: Infinity, ease: "easeInOut" }
                     : { duration: 0.7, ease: [0.22, 1, 0.36, 1] }
                 }
-                style={{ width: 300, height: 475 }}
+                style={{ width: 280, height: 444 }}
               >
-                {/* Front */}
                 <div className="absolute inset-0 [backface-visibility:hidden]">
-                  <CrachaCard tech={tech} ref={cardRef} />
+                  <CrachaCard tech={tech} ref={cardRef} className="!w-[280px]" />
                 </div>
 
-                {/* Back */}
                 <div
                   className="absolute inset-0 overflow-hidden rounded-[18px] bg-gradient-to-br from-slate-50 to-slate-100 p-5 text-slate-800 ring-1 ring-black/10 [backface-visibility:hidden]"
                   style={{ transform: "rotateY(180deg)" }}
@@ -104,10 +116,11 @@ export function CrachaModal({ tech, open, onOpenChange }: Props) {
                 <RotateCw className="h-3.5 w-3.5" /> {flipped ? "Frente" : "Verso"}
               </Button>
               <Button size="sm" variant="secondary" onClick={() => setAuto((a) => !a)}>
-                {auto ? "Pausar rotação" : "Rotação automática"}
+                {auto ? "Pausar" : "Auto"}
               </Button>
-              <Button size="sm" onClick={download}>
-                <Download className="h-3.5 w-3.5" /> Baixar imagem
+              <Button size="sm" onClick={download} disabled={downloading}>
+                {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                Baixar imagem
               </Button>
             </div>
           </div>
@@ -116,6 +129,3 @@ export function CrachaModal({ tech, open, onOpenChange }: Props) {
     </Dialog>
   );
 }
-
-// Silence unused import in older bundlers
-void AnimatePresence;
