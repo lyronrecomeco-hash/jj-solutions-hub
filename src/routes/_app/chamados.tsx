@@ -422,55 +422,25 @@ function KanbanCard({ t, dragging }: { t: Ticket; dragging?: boolean }) {
       <div
         ref={setNodeRef}
         className={cn(
-          "group relative rounded-md border border-border bg-surface px-2.5 py-2 shadow-soft transition",
+          "group relative rounded-md border border-border bg-surface shadow-soft transition",
           isDragging && "opacity-50",
           dragging && "rotate-1 shadow-lg"
         )}
       >
-        <div
-          {...attributes}
-          {...listeners}
-          className="cursor-grab active:cursor-grabbing"
-        >
-          <div className="flex items-center justify-between gap-1.5">
-            <span className="font-mono text-[11px] font-bold tracking-tight">{t.ticket_number}</span>
-            <Badge variant="outline" className={cn("h-[18px] gap-1 px-1.5 text-[9px] font-medium", p.cls)}>
-              <span className={cn("h-1 w-1 rounded-full", p.dot)} />
-              {p.label}
-            </Badge>
-          </div>
-          <div className="mt-1 line-clamp-1 text-[12px] font-medium leading-snug">{t.title}</div>
-          <div className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
-            {t.clients?.company ?? t.contact_name ?? "—"}
-          </div>
-          <div className="mt-1.5 flex items-center justify-between gap-2">
-            <span className="font-mono text-[10px] text-muted-foreground">
-              {new Date(t.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-            </span>
-            {t.profiles?.full_name ? (
-              <span className="truncate rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
-                {t.profiles.full_name.split(" ")[0]}
-              </span>
-            ) : (
-              <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700 dark:text-amber-300">
-                Sem técnico
-              </span>
-            )}
-          </div>
-        </div>
-
+        {/* Top action bar — chevron sits on TOP of the card */}
         <Popover open={menuOpen} onOpenChange={setMenuOpen}>
           <PopoverTrigger asChild>
             <button
               type="button"
               onPointerDown={(e) => e.stopPropagation()}
-              className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-md text-muted-foreground transition hover:bg-surface-muted hover:text-foreground data-[state=open]:bg-surface-muted data-[state=open]:text-foreground"
+              className="flex w-full items-center justify-center gap-1 rounded-t-md border-b border-border/60 bg-surface-muted/40 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground transition hover:bg-surface-muted hover:text-foreground data-[state=open]:bg-surface-muted data-[state=open]:text-foreground"
               aria-label="Ações"
             >
+              Ações
               <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", menuOpen && "rotate-180")} />
             </button>
           </PopoverTrigger>
-          <PopoverContent align="end" sideOffset={8} className="w-60 rounded-lg border-border bg-popover p-1.5 shadow-floating">
+          <PopoverContent side="bottom" align="center" sideOffset={6} className="w-60 rounded-lg border-border bg-popover p-1.5 shadow-floating">
             <Link
               to="/chamados/$id"
               params={{ id: t.id }}
@@ -512,6 +482,38 @@ function KanbanCard({ t, dragging }: { t: Ticket; dragging?: boolean }) {
             )}
           </PopoverContent>
         </Popover>
+
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab px-2.5 py-2 active:cursor-grabbing"
+        >
+          <div className="flex items-center justify-between gap-1.5">
+            <span className="font-mono text-[11px] font-bold tracking-tight">{t.ticket_number}</span>
+            <Badge variant="outline" className={cn("h-[18px] gap-1 px-1.5 text-[9px] font-medium", p.cls)}>
+              <span className={cn("h-1 w-1 rounded-full", p.dot)} />
+              {p.label}
+            </Badge>
+          </div>
+          <div className="mt-1 line-clamp-1 text-[12px] font-medium leading-snug">{t.title}</div>
+          <div className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
+            {t.clients?.company ?? t.contact_name ?? "—"}
+          </div>
+          <div className="mt-1.5 flex items-center justify-between gap-2">
+            <span className="font-mono text-[10px] text-muted-foreground">
+              {new Date(t.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+            {t.profiles?.full_name ? (
+              <span className="truncate rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
+                {t.profiles.full_name.split(" ")[0]}
+              </span>
+            ) : (
+              <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700 dark:text-amber-300">
+                Sem técnico
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       <AssignTechDialog
