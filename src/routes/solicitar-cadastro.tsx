@@ -54,7 +54,7 @@ function SignupPage() {
         full_name, cpf: onlyDigits(form.cpf), rg: onlyDigits(form.rg), email: form.email.trim().toLowerCase(), phone: form.phone || null,
         birth_date: form.birth_date || null,
         cep: form.cep || null, address: form.address || null,
-        address_number: form.address_number || null, complement: form.complement || null, neighborhood: form.neighborhood || null,
+        address_number: form.address_number || null, address_complement: form.complement || null, neighborhood: form.neighborhood || null,
         city: form.city || null, state: form.state || null,
         specialty: form.specialty || null,
         desired_employment_type: "field",
