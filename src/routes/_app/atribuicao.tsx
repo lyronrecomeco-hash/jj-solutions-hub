@@ -1,19 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { UserCog, Loader2, ArrowRight } from "lucide-react";
-import { toast } from "sonner";
+import { UserCog, Loader2, UserPlus } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AssignTechDialog } from "@/components/assign-tech-dialog";
 
 export const Route = createFileRoute("/_app/atribuicao")({ component: AssignmentPage });
 
 function AssignmentPage() {
-  const qc = useQueryClient();
-  const [assigning, setAssigning] = useState<Record<string, string>>({});
+  const [target, setTarget] = useState<{ id: string; number: string } | null>(null);
 
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ["unassigned-tickets"],
@@ -22,26 +20,10 @@ function AssignmentPage() {
         .from("tickets")
         .select("id, ticket_number, title, priority, status, created_at, clients(company)")
         .is("assigned_to", null)
+        .not("status", "in", "(cancelled,closed)")
         .order("created_at", { ascending: false });
       return (data ?? []) as any[];
     },
-  });
-
-  const { data: techs = [] } = useQuery({
-    queryKey: ["techs-assign"],
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, full_name, specialty").order("full_name");
-      return data ?? [];
-    },
-  });
-
-  const assign = useMutation({
-    mutationFn: async ({ ticket_id, user_id }: { ticket_id: string; user_id: string }) => {
-      const { error } = await supabase.from("tickets").update({ assigned_to: user_id, status: "in_progress" }).eq("id", ticket_id);
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => { toast.success("Chamado atribuído"); qc.invalidateQueries({ queryKey: ["unassigned-tickets"] }); },
-    onError: (e: any) => toast.error("Falha", { description: e?.message }),
   });
 
   return (
@@ -55,7 +37,9 @@ function AssignmentPage() {
       </header>
 
       <div className="rounded-xl border border-border bg-surface shadow-soft">
-        <div className="border-b border-border p-4 text-sm font-semibold">Chamados sem responsável <span className="ml-2 text-muted-foreground">({tickets.length})</span></div>
+        <div className="border-b border-border p-4 text-sm font-semibold">
+          Chamados sem responsável <span className="ml-2 text-muted-foreground">({tickets.length})</span>
+        </div>
         {isLoading ? (
           <div className="py-16 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" /></div>
         ) : tickets.length === 0 ? (
@@ -72,24 +56,22 @@ function AssignmentPage() {
                   <div className="mt-0.5 truncate text-sm font-semibold">{t.title}</div>
                   <div className="text-xs text-muted-foreground">{t.clients?.company ?? "Sem cliente"}</div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Select value={assigning[t.id] ?? ""} onValueChange={(v) => setAssigning((a) => ({ ...a, [t.id]: v }))}>
-                    <SelectTrigger className="h-9 w-[220px] bg-surface-muted"><SelectValue placeholder="Selecionar técnico" /></SelectTrigger>
-                    <SelectContent>
-                      {techs.map((tech: any) => (
-                        <SelectItem key={tech.id} value={tech.id}>{tech.full_name}{tech.specialty ? ` · ${tech.specialty}` : ""}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button size="sm" disabled={!assigning[t.id] || assign.isPending} onClick={() => assign.mutate({ ticket_id: t.id, user_id: assigning[t.id] })}>
-                    Atribuir <ArrowRight className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                <Button size="sm" onClick={() => setTarget({ id: t.id, number: t.ticket_number })}>
+                  <UserPlus className="h-3.5 w-3.5" /> Atribuir
+                </Button>
               </li>
             ))}
           </ul>
         )}
       </div>
+
+      <AssignTechDialog
+        ticketId={target?.id ?? null}
+        ticketNumber={target?.number}
+        open={!!target}
+        onOpenChange={(o) => !o && setTarget(null)}
+      />
     </div>
   );
 }
+

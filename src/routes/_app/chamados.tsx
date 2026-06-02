@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Plus, Search, Ticket, AlertTriangle, Clock, CheckCircle2, Filter, Loader2, ArrowRight,
-  Image as ImageIcon, LayoutList, KanbanSquare,
+  Image as ImageIcon, LayoutList, KanbanSquare, MoreHorizontal, UserPlus, ArrowRightCircle,
+  CheckCircle, XCircle, ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -20,6 +21,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AssignTechDialog } from "@/components/assign-tech-dialog";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -99,7 +102,9 @@ function TicketsPage() {
   }, [qc]);
 
   const filtered = useMemo(() => tickets.filter((t) => {
-    if (tab !== "all" && t.status !== tab) return false;
+    if (tab === "unassigned") {
+      if (t.assigned_to) return false;
+    } else if (tab !== "all" && t.status !== tab) return false;
     if (priority !== "all" && t.priority !== priority) return false;
     if (q && ![t.title, t.ticket_number, t.contact_name, t.clients?.company].join(" ").toLowerCase().includes(q.toLowerCase())) return false;
     return true;
@@ -142,6 +147,7 @@ function TicketsPage() {
             <Tabs value={tab} onValueChange={setTab} className="flex-1">
               <TabsList className="bg-surface-muted">
                 <TabsTrigger value="all">Todos</TabsTrigger>
+                <TabsTrigger value="unassigned">Sem responsável</TabsTrigger>
                 <TabsTrigger value="open">Abertos</TabsTrigger>
                 <TabsTrigger value="in_progress">Em andamento</TabsTrigger>
                 <TabsTrigger value="waiting_part">Aguardando peça</TabsTrigger>
@@ -313,39 +319,161 @@ function Column({ col, items }: { col: { key: string; label: string; stripe: str
 function KanbanCard({ t, dragging }: { t: Ticket; dragging?: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: t.id });
   const p = PRIORITY[t.priority];
+  const qc = useQueryClient();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+
+  const NEXT_STATUS: Record<string, { key: string; label: string } | null> = {
+    open: { key: "in_progress", label: "Iniciar atendimento" },
+    in_progress: { key: "resolved", label: "Marcar como resolvido" },
+    waiting_part: { key: "in_progress", label: "Voltar para em andamento" },
+    resolved: { key: "closed", label: "Finalizar e arquivar" },
+    not_resolved: { key: "open", label: "Reabrir" },
+    cancelled: { key: "open", label: "Reabrir" },
+    closed: null,
+  };
+  const next = NEXT_STATUS[t.status];
+
+  const changeStatus = useMutation({
+    mutationFn: async (status: string) => {
+      const patch: any = { status };
+      if (status === "in_progress") patch.started_at = new Date().toISOString();
+      if (["resolved", "not_resolved", "cancelled", "closed"].includes(status)) {
+        patch.closed_at = new Date().toISOString();
+      }
+      const { error } = await supabase.from("tickets").update(patch).eq("id", t.id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tickets-list"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-tickets"] });
+      qc.invalidateQueries({ queryKey: ["unassigned-tickets"] });
+      setMenuOpen(false);
+    },
+    onError: (e: any) => toast.error("Falha", { description: e?.message }),
+  });
+
   return (
-    <div
-      ref={setNodeRef}
-      {...attributes}
-      {...listeners}
+    <>
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "group relative rounded-md border border-border bg-surface px-2.5 py-2 shadow-soft transition",
+          isDragging && "opacity-50",
+          dragging && "rotate-1 shadow-lg"
+        )}
+      >
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing"
+        >
+          <div className="flex items-center justify-between gap-1.5">
+            <span className="font-mono text-[11px] font-bold tracking-tight">{t.ticket_number}</span>
+            <Badge variant="outline" className={cn("h-[18px] gap-1 px-1.5 text-[9px] font-medium", p.cls)}>
+              <span className={cn("h-1 w-1 rounded-full", p.dot)} />
+              {p.label}
+            </Badge>
+          </div>
+          <div className="mt-1 line-clamp-1 text-[12px] font-medium leading-snug">{t.title}</div>
+          <div className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
+            {t.clients?.company ?? t.contact_name ?? "—"}
+          </div>
+          <div className="mt-1.5 flex items-center justify-between gap-2">
+            <span className="font-mono text-[10px] text-muted-foreground">
+              {new Date(t.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+            {t.profiles?.full_name ? (
+              <span className="truncate rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
+                {t.profiles.full_name.split(" ")[0]}
+              </span>
+            ) : (
+              <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700 dark:text-amber-300">
+                Sem técnico
+              </span>
+            )}
+          </div>
+        </div>
+
+        <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-md text-muted-foreground opacity-0 transition hover:bg-surface-muted hover:text-foreground group-hover:opacity-100 data-[state=open]:opacity-100"
+              aria-label="Ações"
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-56 p-1">
+            <Link
+              to="/chamados/$id"
+              params={{ id: t.id }}
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface-muted"
+            >
+              <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+              Abrir chamado
+            </Link>
+            <MenuButton
+              icon={UserPlus}
+              label={t.assigned_to ? "Reatribuir técnico" : "Atribuir técnico"}
+              onClick={() => { setMenuOpen(false); setAssignOpen(true); }}
+            />
+            {next && (
+              <MenuButton
+                icon={ArrowRightCircle}
+                label={next.label}
+                onClick={() => changeStatus.mutate(next.key)}
+                disabled={changeStatus.isPending}
+              />
+            )}
+            {!["closed", "resolved", "cancelled"].includes(t.status) && (
+              <MenuButton
+                icon={CheckCircle}
+                label="Encerrar como resolvido"
+                onClick={() => changeStatus.mutate("resolved")}
+                disabled={changeStatus.isPending}
+              />
+            )}
+            {t.status !== "cancelled" && (
+              <MenuButton
+                icon={XCircle}
+                label="Cancelar chamado"
+                tone="danger"
+                onClick={() => changeStatus.mutate("cancelled")}
+                disabled={changeStatus.isPending}
+              />
+            )}
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <AssignTechDialog
+        ticketId={assignOpen ? t.id : null}
+        ticketNumber={t.ticket_number}
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+      />
+    </>
+  );
+}
+
+function MenuButton({ icon: Icon, label, onClick, disabled, tone }: { icon: any; label: string; onClick: () => void; disabled?: boolean; tone?: "danger" }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
       className={cn(
-        "group relative cursor-grab rounded-md border border-border bg-surface px-2.5 py-2 shadow-soft transition active:cursor-grabbing",
-        isDragging && "opacity-50",
-        dragging && "rotate-1 shadow-lg"
+        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition hover:bg-surface-muted disabled:opacity-50",
+        tone === "danger" && "text-destructive hover:bg-destructive/10"
       )}
     >
-      <div className="flex items-center justify-between gap-1.5">
-        <span className="font-mono text-[11px] font-bold tracking-tight">{t.ticket_number}</span>
-        <Badge variant="outline" className={cn("h-[18px] gap-1 px-1.5 text-[9px] font-medium", p.cls)}>
-          <span className={cn("h-1 w-1 rounded-full", p.dot)} />
-          {p.label}
-        </Badge>
-      </div>
-      <Link to="/chamados/$id" params={{ id: t.id }} className="mt-1 block">
-        <div className="line-clamp-1 text-[12px] font-medium leading-snug hover:underline">{t.title}</div>
-      </Link>
-      <div className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
-        {t.clients?.company ?? t.contact_name ?? "—"}
-      </div>
-      <div className="mt-1.5 flex items-center justify-between gap-2">
-        <span className="font-mono text-[10px] text-muted-foreground">
-          {new Date(t.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-        </span>
-        {t.profiles?.full_name && (
-          <span className="truncate rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">{t.profiles.full_name.split(" ")[0]}</span>
-        )}
-      </div>
-    </div>
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </button>
   );
 }
 
@@ -396,28 +524,36 @@ function NewTicketSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (
 
   const mut = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("tickets").insert({
-        title: form.title,
-        description: form.description || null,
-        priority: form.priority,
-        client_id: form.client_id || null,
-        contact_name: form.contact_name || null,
-        contact_phone: form.contact_phone || null,
-        equipment: form.equipment || null,
-        address: form.address || null,
-        assigned_to: form.assigned_to || null,
-        created_by: user?.id ?? null,
-      });
+      const { data, error } = await supabase
+        .from("tickets")
+        .insert({
+          title: form.title,
+          description: form.description || null,
+          priority: form.priority,
+          client_id: form.client_id || null,
+          contact_name: form.contact_name || null,
+          contact_phone: form.contact_phone || null,
+          equipment: form.equipment || null,
+          address: form.address || null,
+          assigned_to: form.assigned_to || null,
+          created_by: user?.id ?? null,
+        })
+        .select("id, ticket_number, title, description, status, priority, client_id, contact_name, contact_phone, assigned_to, created_at, deadline, clients(company), profiles:assigned_to(full_name)")
+        .single();
       if (error) throw new Error(error.message);
+      return data as any;
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
       toast.success("Chamado criado");
+      // Optimistic prepend so it appears imediatamente sem aguardar refetch
+      qc.setQueryData<any[]>(["tickets-list"], (old) => [created, ...(old ?? [])]);
       qc.invalidateQueries({ queryKey: ["tickets-list"] });
       qc.invalidateQueries({ queryKey: ["dashboard-tickets"] });
+      qc.invalidateQueries({ queryKey: ["unassigned-tickets"] });
       setForm({ title: "", description: "", priority: "medium", client_id: "", contact_name: "", contact_phone: "", equipment: "", address: "", assigned_to: "" });
       onOpenChange(false);
     },
-    onError: (e: any) => toast.error("Falha", { description: e?.message }),
+    onError: (e: any) => toast.error("Falha ao criar chamado", { description: e?.message }),
   });
 
   return (

@@ -39,15 +39,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_evt, s) => {
+    let currentUid: string | null = null;
+    const { data: sub } = supabase.auth.onAuthStateChange((evt, s) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) {
-        // defer DB reads to avoid blocking the auth callback
-        setTimeout(() => loadProfile(s.user.id), 0);
-      } else {
+      const nextUid = s?.user?.id ?? null;
+      if (!s?.user) {
+        currentUid = null;
         setProfile(null);
         setRoles([]);
+        return;
+      }
+      // Only reload profile when the user actually changes (SIGNED_IN / USER_UPDATED).
+      // Ignore TOKEN_REFRESHED and INITIAL_SESSION to avoid flicker between routes.
+      if (nextUid !== currentUid || evt === "USER_UPDATED") {
+        currentUid = nextUid;
+        setTimeout(() => loadProfile(s.user.id), 0);
       }
     });
 
