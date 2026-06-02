@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Ticket, Clock, CheckCircle2, CalendarCheck, Users, AlertTriangle,
@@ -114,7 +115,7 @@ function DashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <div>
               <CardTitle className="text-base">Abertos vs Resolvidos</CardTitle>
-              <p className="text-xs text-muted-foreground">Últimos 14 dias</p>
+              <p className="text-xs text-muted-foreground">{rangeLabel}</p>
             </div>
             <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
           </CardHeader>
@@ -328,10 +329,11 @@ function buildProductivityData(tickets: any[], techs: any[]) {
   }));
 }
 
-function buildTrendData(tickets: any[]) {
+function buildTrendData(tickets: any[], days: number = 14) {
   const out: { day: string; abertos: number; resolvidos: number }[] = [];
   const today = new Date();
-  for (let i = 13; i >= 0; i--) {
+  const n = Math.max(1, days);
+  for (let i = n - 1; i >= 0; i--) {
     const d = new Date(today); d.setDate(today.getDate() - i); d.setHours(0, 0, 0, 0);
     const next = new Date(d); next.setDate(d.getDate() + 1);
     const inDay = tickets.filter((t) => {

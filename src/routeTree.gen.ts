@@ -13,6 +13,7 @@ import { Route as SolicitarCadastroRouteImport } from './routes/solicitar-cadast
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ValidarIdRouteImport } from './routes/validar.$id'
 import { Route as AppTecnicosRouteImport } from './routes/_app/tecnicos'
 import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
 import { Route as AppMonitoramentoRouteImport } from './routes/_app/monitoramento'
@@ -48,6 +49,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ValidarIdRoute = ValidarIdRouteImport.update({
+  id: '/validar/$id',
+  path: '/validar/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppTecnicosRoute = AppTecnicosRouteImport.update({
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/monitoramento': typeof AppMonitoramentoRoute
   '/relatorios': typeof AppRelatoriosRoute
   '/tecnicos': typeof AppTecnicosRouteWithChildren
+  '/validar/$id': typeof ValidarIdRoute
   '/chamados/$id': typeof AppChamadosIdRoute
   '/tecnicos/novo': typeof AppTecnicosNovoRoute
   '/tecnicos/$id/cracha': typeof AppTecnicosIdCrachaRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByTo {
   '/monitoramento': typeof AppMonitoramentoRoute
   '/relatorios': typeof AppRelatoriosRoute
   '/tecnicos': typeof AppTecnicosRouteWithChildren
+  '/validar/$id': typeof ValidarIdRoute
   '/chamados/$id': typeof AppChamadosIdRoute
   '/tecnicos/novo': typeof AppTecnicosNovoRoute
   '/tecnicos/$id/cracha': typeof AppTecnicosIdCrachaRoute
@@ -200,6 +208,7 @@ export interface FileRoutesById {
   '/_app/monitoramento': typeof AppMonitoramentoRoute
   '/_app/relatorios': typeof AppRelatoriosRoute
   '/_app/tecnicos': typeof AppTecnicosRouteWithChildren
+  '/validar/$id': typeof ValidarIdRoute
   '/_app/chamados/$id': typeof AppChamadosIdRoute
   '/_app/tecnicos/novo': typeof AppTecnicosNovoRoute
   '/_app/tecnicos/$id/cracha': typeof AppTecnicosIdCrachaRoute
@@ -224,6 +233,7 @@ export interface FileRouteTypes {
     | '/monitoramento'
     | '/relatorios'
     | '/tecnicos'
+    | '/validar/$id'
     | '/chamados/$id'
     | '/tecnicos/novo'
     | '/tecnicos/$id/cracha'
@@ -246,6 +256,7 @@ export interface FileRouteTypes {
     | '/monitoramento'
     | '/relatorios'
     | '/tecnicos'
+    | '/validar/$id'
     | '/chamados/$id'
     | '/tecnicos/novo'
     | '/tecnicos/$id/cracha'
@@ -269,6 +280,7 @@ export interface FileRouteTypes {
     | '/_app/monitoramento'
     | '/_app/relatorios'
     | '/_app/tecnicos'
+    | '/validar/$id'
     | '/_app/chamados/$id'
     | '/_app/tecnicos/novo'
     | '/_app/tecnicos/$id/cracha'
@@ -279,6 +291,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   SolicitarCadastroRoute: typeof SolicitarCadastroRoute
+  ValidarIdRoute: typeof ValidarIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -309,6 +322,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/validar/$id': {
+      id: '/validar/$id'
+      path: '/validar/$id'
+      fullPath: '/validar/$id'
+      preLoaderRoute: typeof ValidarIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/tecnicos': {
@@ -500,6 +520,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   SolicitarCadastroRoute: SolicitarCadastroRoute,
+  ValidarIdRoute: ValidarIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
