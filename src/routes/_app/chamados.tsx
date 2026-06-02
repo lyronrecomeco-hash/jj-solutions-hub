@@ -558,10 +558,12 @@ function NewTicketSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (
           assigned_to: form.assigned_to || null,
           created_by: user?.id ?? null,
         })
-        .select("id, ticket_number, title, description, status, priority, client_id, contact_name, contact_phone, assigned_to, created_at, deadline, clients(company), profiles:assigned_to(full_name)")
-        .single();
+        .select(TICKET_SELECT)
+        .maybeSingle();
       if (error) throw new Error(error.message);
-      return data as any;
+      if (!data) throw new Error("Chamado criado, mas a linha não retornou do banco.");
+      const [created] = await hydrateTickets([data]);
+      return created;
     },
     onSuccess: (created) => {
       toast.success("Chamado criado");
