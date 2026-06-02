@@ -21,13 +21,10 @@ function ValidatePage() {
   const { data, isLoading } = useQuery({
     queryKey: ["validate-tech", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, job_title, specialty, registration_code, photo_url, company")
-        .eq("id", id)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc("get_public_profile", { _id: id });
       if (error) throw error;
-      return data;
+      const row = Array.isArray(data) ? data[0] : data;
+      return row ?? null;
     },
   });
 
