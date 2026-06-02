@@ -1,7 +1,7 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard, Ticket, Users, Building2, BarChart3, MessageSquare,
-  Settings, ScrollText, LogOut, IdCard, ClipboardList, UserCog, ShieldCheck,
+  Settings, ScrollText, LogOut, IdCard, ClipboardList, UserCog, ShieldCheck, UserCircle,
 } from "lucide-react";
 
 import {
