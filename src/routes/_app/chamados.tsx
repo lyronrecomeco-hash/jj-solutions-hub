@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Plus, Search, Ticket, AlertTriangle, Clock, CheckCircle2, Filter, Loader2, ArrowRight,
-  Image as ImageIcon, LayoutList, KanbanSquare,
+  Image as ImageIcon, LayoutList, KanbanSquare, MoreHorizontal, UserPlus, ArrowRightCircle,
+  CheckCircle, XCircle, ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -20,6 +21,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AssignTechDialog } from "@/components/assign-tech-dialog";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 
