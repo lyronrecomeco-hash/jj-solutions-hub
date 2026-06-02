@@ -22,6 +22,8 @@ import { TechnicianViewSheet } from "@/components/technician-view-sheet";
 import { TrackingModal } from "@/components/tracking-modal";
 import { deleteTechnician, updateTechnician } from "@/lib/api/technicians.functions";
 import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/tecnicos")({ component: TechniciansPage });
 
@@ -29,6 +31,7 @@ type Row = {
   id: string; full_name: string; email: string; phone: string | null;
   specialty: string | null; job_title: string | null; registration_code: string | null;
   employment_type: "field" | "clt" | "pj" | "internal"; photo_url: string | null; status: string;
+  last_seen_at: string | null;
 };
 
 const employmentLabel: Record<Row["employment_type"], { label: string; cls: string }> = {
@@ -40,6 +43,7 @@ const employmentLabel: Record<Row["employment_type"], { label: string; cls: stri
 
 function TechniciansPage() {
   const { isAdmin } = useAuth();
+  const { isSuperAdmin } = usePermissions();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [q, setQ] = useState("");
@@ -56,11 +60,23 @@ function TechniciansPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, full_name, email, phone, specialty, job_title, registration_code, employment_type, photo_url, status")
+        .select("id, full_name, email, phone, specialty, job_title, registration_code, employment_type, photo_url, status, last_seen_at")
         .order("full_name");
       return (data ?? []) as Row[];
     },
+    refetchInterval: 30_000,
   });
+
+  // Realtime presence updates
+  useEffect(() => {
+    const ch = supabase
+      .channel("techs-presence")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles" }, () => {
+        qc.invalidateQueries({ queryKey: ["technicians"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
 
   const delFn = useServerFn(deleteTechnician);
   const delMut = useMutation({
