@@ -1,23 +1,80 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Building, Bell, Shield, Database, Palette, Plug } from "lucide-react";
+import { Building, Bell, Database, Plug, Sparkles, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_app/configuracoes")({ component: SettingsPage });
 
+const NOTIF_TYPES = [
+  { type: "ticket", label: "Chamados", hint: "Novos chamados e atribuições." },
+  { type: "message", label: "Mensagens", hint: "Mensagens no mural do técnico." },
+  { type: "signup", label: "Novos cadastros", hint: "Solicitações de novos técnicos." },
+  { type: "sla", label: "SLA estourado", hint: "Alertas de prazo excedido." },
+  { type: "sound", label: "Som de notificação", hint: "Toca um som curto ao receber." },
+] as const;
+
 function SettingsPage() {
+  const { user, isAdmin } = useAuth();
   const [company, setCompany] = useState("JJ Informática");
   const [contact, setContact] = useState("contato@jjinformatica.com.br");
   const [slaHours, setSlaHours] = useState("24");
-  const [notifNew, setNotifNew] = useState(true);
-  const [notifSla, setNotifSla] = useState(true);
-  const [notifSound, setNotifSound] = useState(true);
-  const [twofa, setTwofa] = useState(false);
+  const [prefs, setPrefs] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: settings } = await supabase
+          .from("app_settings").select("key, value").in("key", ["organization", "sla"]);
+        const org = settings?.find((s) => s.key === "organization")?.value as any;
+        const sla = settings?.find((s) => s.key === "sla")?.value as any;
+        if (org?.name) setCompany(org.name);
+        if (org?.contact_email) setContact(org.contact_email);
+        if (sla?.default_hours) setSlaHours(String(sla.default_hours));
+
+        if (user?.id) {
+          const { data: np } = await supabase
+            .from("notification_preferences").select("type, enabled").eq("user_id", user.id);
+          const map: Record<string, boolean> = {};
+          NOTIF_TYPES.forEach((t) => (map[t.type] = true));
+          (np ?? []).forEach((row: any) => (map[row.type] = row.enabled));
+          setPrefs(map);
+        }
+      } finally { setLoading(false); }
+    })();
+  }, [user?.id]);
+
+  async function save() {
+    if (!user?.id) return;
+    setSaving(true);
+    try {
+      if (isAdmin) {
+        await supabase.from("app_settings").upsert([
+          { key: "organization", value: { name: company, contact_email: contact }, updated_by: user.id },
+          { key: "sla", value: { default_hours: Number(slaHours) || 24 }, updated_by: user.id },
+        ], { onConflict: "key" });
+      }
+      const rows = NOTIF_TYPES.map((t) => ({
+        user_id: user.id, type: t.type, enabled: prefs[t.type] ?? true,
+      }));
+      await supabase.from("notification_preferences").upsert(rows, { onConflict: "user_id,type" });
+      toast.success("Configurações salvas");
+    } catch (e: any) {
+      toast.error("Falha ao salvar", { description: e?.message });
+    } finally { setSaving(false); }
+  }
+
+  if (loading) {
+    return <div className="grid place-items-center py-20"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+  }
 
   return (
     <div className="px-4 py-6 sm:px-6 lg:px-8">
@@ -31,75 +88,63 @@ function SettingsPage() {
         <TabsList className="mb-5 inline-flex h-auto w-full flex-wrap justify-start gap-1 rounded-xl border border-border bg-surface p-1">
           <Tab v="org" icon={Building}>Organização</Tab>
           <Tab v="notif" icon={Bell}>Notificações</Tab>
-          <Tab v="sec" icon={Shield}>Segurança</Tab>
           <Tab v="ops" icon={Database}>Operação & SLA</Tab>
-          <Tab v="look" icon={Palette}>Aparência</Tab>
           <Tab v="int" icon={Plug}>Integrações</Tab>
         </TabsList>
 
         <TabsContent value="org">
           <Card title="Organização">
             <Row label="Nome da empresa" hint="Aparece nos relatórios e e-mails.">
-              <Input value={company} onChange={(e) => setCompany(e.target.value)} className="max-w-md" />
+              <Input value={company} onChange={(e) => setCompany(e.target.value)} disabled={!isAdmin} className="max-w-md" />
             </Row>
             <Row label="E-mail de contato" hint="Resposta padrão para comunicações externas.">
-              <Input value={contact} onChange={(e) => setContact(e.target.value)} className="max-w-md" />
+              <Input value={contact} onChange={(e) => setContact(e.target.value)} disabled={!isAdmin} className="max-w-md" />
             </Row>
           </Card>
         </TabsContent>
 
         <TabsContent value="notif">
           <Card title="Notificações">
-            <Row label="Novos chamados" hint="Notificar quando um chamado for criado.">
-              <Switch checked={notifNew} onCheckedChange={setNotifNew} />
-            </Row>
-            <Row label="SLA estourado" hint="Alertar gestores quando o SLA passar do prazo.">
-              <Switch checked={notifSla} onCheckedChange={setNotifSla} />
-            </Row>
-            <Row label="Som de notificação" hint="Tocar um som curto quando chegar uma notificação.">
-              <Switch checked={notifSound} onCheckedChange={setNotifSound} />
-            </Row>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="sec">
-          <Card title="Segurança">
-            <Row label="Autenticação em 2 fatores (2FA)" hint="Recomendado para todos os administradores.">
-              <Switch checked={twofa} onCheckedChange={setTwofa} />
-            </Row>
+            {NOTIF_TYPES.map((t) => (
+              <Row key={t.type} label={t.label} hint={t.hint}>
+                <Switch
+                  checked={prefs[t.type] ?? true}
+                  onCheckedChange={(v) => setPrefs((p) => ({ ...p, [t.type]: v }))}
+                />
+              </Row>
+            ))}
           </Card>
         </TabsContent>
 
         <TabsContent value="ops">
           <Card title="Operação & SLA">
             <Row label="SLA padrão (horas)" hint="Prazo padrão para novos chamados.">
-              <Input value={slaHours} type="number" onChange={(e) => setSlaHours(e.target.value)} className="max-w-[160px]" />
-            </Row>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="look">
-          <Card title="Aparência">
-            <Row label="Tema" hint="Use o seletor no topo para alternar entre claro e escuro.">
-              <span className="text-sm text-muted-foreground">Disponível no header</span>
+              <Input value={slaHours} type="number" disabled={!isAdmin}
+                onChange={(e) => setSlaHours(e.target.value)} className="max-w-[160px]" />
             </Row>
           </Card>
         </TabsContent>
 
         <TabsContent value="int">
-          <Card title="Integrações">
-            <Row label="WhatsApp Business" hint="Receba mensagens de clientes direto na plataforma.">
-              <Button variant="outline" size="sm" disabled>Em breve</Button>
-            </Row>
-            <Row label="Calendário Google" hint="Sincronize visitas técnicas.">
-              <Button variant="outline" size="sm" disabled>Em breve</Button>
-            </Row>
-          </Card>
+          <section className="rounded-xl border border-border bg-surface p-10 shadow-soft">
+            <div className="mx-auto flex max-w-md flex-col items-center text-center">
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
+                <Sparkles className="h-6 w-6" />
+              </span>
+              <h2 className="mt-4 font-display text-lg font-semibold">EM BREVE</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Novas integrações estão a caminho. Em breve você poderá conectar serviços externos diretamente por aqui.
+              </p>
+            </div>
+          </section>
         </TabsContent>
       </Tabs>
 
       <div className="mt-6 flex justify-end">
-        <Button onClick={() => toast.success("Configurações salvas")}>Salvar alterações</Button>
+        <Button onClick={save} disabled={saving}>
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+          Salvar alterações
+        </Button>
       </div>
     </div>
   );
