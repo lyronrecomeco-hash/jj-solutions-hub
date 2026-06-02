@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Download, RotateCw, ShieldCheck, Loader2 } from "lucide-react";
+import { Printer, RotateCw, ShieldCheck, Loader2 } from "lucide-react";
 import { toPng } from "html-to-image";
+import { jsPDF } from "jspdf";
 import { toast } from "sonner";
 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -19,25 +20,29 @@ export function CrachaModal({ tech, open, onOpenChange }: Props) {
   const [auto, setAuto] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const backRef = useRef<HTMLDivElement>(null);
 
-  async function download() {
-    if (!cardRef.current || !tech) return;
+  async function printPdf() {
+    const target = flipped ? backRef.current : cardRef.current;
+    if (!target || !tech) return;
     setDownloading(true);
     try {
-      // html-to-image lida com oklch nativamente e produz PNG de alta resolução.
-      const dataUrl = await toPng(cardRef.current, {
+      const dataUrl = await toPng(target, {
         pixelRatio: 4,
         cacheBust: true,
-        backgroundColor: "transparent",
+        backgroundColor: "#ffffff",
         skipFonts: false,
       });
-      const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = `cracha-${tech.full_name.replace(/\s+/g, "-").toLowerCase()}.png`;
-      link.click();
-      toast.success("Crachá baixado");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const badgeW = 60;
+      const badgeH = 95;
+      const x = (210 - badgeW) / 2;
+      const y = 22;
+      pdf.addImage(dataUrl, "PNG", x, y, badgeW, badgeH, undefined, "FAST");
+      pdf.save(`cracha-${tech.full_name.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+      toast.success("PDF de impressão gerado");
     } catch (err: any) {
-      toast.error("Falha ao baixar", { description: err?.message });
+      toast.error("Falha ao imprimir", { description: err?.message });
     } finally {
       setDownloading(false);
     }
@@ -86,6 +91,7 @@ export function CrachaModal({ tech, open, onOpenChange }: Props) {
                 </div>
 
                 <div
+                  ref={backRef}
                   className="absolute inset-0 overflow-hidden rounded-[18px] bg-gradient-to-br from-slate-50 to-slate-100 p-5 text-slate-800 ring-1 ring-black/10 [backface-visibility:hidden]"
                   style={{ transform: "rotateY(180deg)" }}
                 >
@@ -118,9 +124,9 @@ export function CrachaModal({ tech, open, onOpenChange }: Props) {
               <Button size="sm" variant="secondary" onClick={() => setAuto((a) => !a)}>
                 {auto ? "Pausar" : "Auto"}
               </Button>
-              <Button size="sm" onClick={download} disabled={downloading}>
-                {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                Baixar imagem
+              <Button size="sm" onClick={printPdf} disabled={downloading}>
+                {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
+                IMPRIMIR
               </Button>
             </div>
           </div>
