@@ -222,9 +222,19 @@ function MessagesPage() {
                         : <span className="text-xs text-muted-foreground">0</span>}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Abrir chat" onClick={() => setChatFor(t)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="inline-flex items-center gap-0.5">
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Abrir chat" onClick={() => setChatFor(t)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon" variant="ghost"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          title="Excluir conversa"
+                          onClick={() => setRemoveFor(t)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -245,6 +255,28 @@ function MessagesPage() {
           <ChatPanel tech={chatFor} ticketId={null} />
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!removeFor} onOpenChange={(o) => !o && setRemoveFor(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir conversa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todas as mensagens trocadas com <b>{removeFor?.full_name}</b> serão removidas
+              permanentemente. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={delThread.isPending}
+              onClick={(e) => { e.preventDefault(); if (removeFor) delThread.mutate(removeFor.id); }}
+            >
+              {delThread.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
