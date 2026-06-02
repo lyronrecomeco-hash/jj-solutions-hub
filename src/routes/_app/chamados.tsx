@@ -218,28 +218,150 @@ function TicketsPage() {
 
 function TicketRow({ t }: { t: Ticket }) {
   const p = PRIORITY[t.priority];
+  const [detailsOpen, setDetailsOpen] = useState(false);
   return (
     <li>
-      <Link to="/chamados/$id" params={{ id: t.id }} className="flex items-center gap-4 px-4 py-3.5 hover:bg-surface-muted/50">
-        <span className={cn("h-9 w-1 rounded-full", p.dot)} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs font-medium text-muted-foreground">{t.ticket_number}</span>
-            <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px]", p.cls)}>{p.label}</Badge>
-            <span className="text-[11px] text-muted-foreground">{STATUS_LABEL[t.status] ?? t.status}</span>
+      <div className="flex items-center gap-4 px-4 py-3.5 hover:bg-surface-muted/50">
+        <Link to="/chamados/$id" params={{ id: t.id }} className="flex min-w-0 flex-1 items-center gap-4">
+          <span className={cn("h-9 w-1 rounded-full", p.dot)} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-medium text-muted-foreground">{t.ticket_number}</span>
+              <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px]", p.cls)}>{p.label}</Badge>
+              <span className="text-[11px] text-muted-foreground">{STATUS_LABEL[t.status] ?? t.status}</span>
+            </div>
+            <div className="mt-0.5 truncate text-sm font-semibold">{t.title}</div>
+            <div className="mt-0.5 truncate text-xs text-muted-foreground">
+              {t.clients?.company ?? t.contact_name ?? "—"}{t.profiles?.full_name ? ` · ${t.profiles.full_name}` : ""}
+            </div>
           </div>
-          <div className="mt-0.5 truncate text-sm font-semibold">{t.title}</div>
-          <div className="mt-0.5 truncate text-xs text-muted-foreground">
-            {t.clients?.company ?? t.contact_name ?? "—"}{t.profiles?.full_name ? ` · ${t.profiles.full_name}` : ""}
+          <div className="hidden text-right text-[11px] text-muted-foreground sm:block">
+            <div>{new Date(t.created_at).toLocaleDateString("pt-BR")}</div>
+            {t.deadline && <div className="text-warning-foreground">SLA {new Date(t.deadline).toLocaleDateString("pt-BR")}</div>}
           </div>
-        </div>
-        <div className="hidden text-right text-[11px] text-muted-foreground sm:block">
-          <div>{new Date(t.created_at).toLocaleDateString("pt-BR")}</div>
-          {t.deadline && <div className="text-warning-foreground">SLA {new Date(t.deadline).toLocaleDateString("pt-BR")}</div>}
-        </div>
-        <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-      </Link>
+        </Link>
+        <button
+          type="button"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDetailsOpen(true); }}
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-surface-muted hover:text-foreground"
+          title="Ver detalhes do chamado"
+        >
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      </div>
+      <TicketDetailsSheet ticketId={t.id} open={detailsOpen} onOpenChange={setDetailsOpen} />
     </li>
+  );
+}
+
+function TicketDetailsSheet({ ticketId, open, onOpenChange }: { ticketId: string; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["ticket-details", ticketId],
+    enabled: open,
+    queryFn: async () => {
+      const { data: t } = await supabase
+        .from("tickets")
+        .select("id, ticket_number, title, description, status, priority, equipment, serial_number, contact_name, contact_phone, address, created_at, started_at, closed_at, deadline, client_id, assigned_to, created_by")
+        .eq("id", ticketId).maybeSingle();
+      if (!t) return null;
+      const [{ data: client }, { data: assignee }, { data: creator }] = await Promise.all([
+        t.client_id ? supabase.from("clients").select("company, contact_name, phone, email").eq("id", t.client_id).maybeSingle() : Promise.resolve({ data: null }),
+        t.assigned_to ? supabase.from("profiles").select("full_name, email, phone, job_title").eq("id", t.assigned_to).maybeSingle() : Promise.resolve({ data: null }),
+        t.created_by ? supabase.from("profiles").select("full_name").eq("id", t.created_by).maybeSingle() : Promise.resolve({ data: null }),
+      ]);
+      return { t, client, assignee, creator };
+    },
+  });
+
+  const t = data?.t as any;
+  const p = t ? PRIORITY[t.priority as Ticket["priority"]] : null;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
+            {t ? <><span className="font-mono text-sm text-muted-foreground">{t.ticket_number}</span> {t.title}</> : "Detalhes do chamado"}
+          </SheetTitle>
+          <SheetDescription>Resumo completo, contato, atribuição e datas.</SheetDescription>
+        </SheetHeader>
+
+        {isLoading || !t ? (
+          <div className="grid place-items-center py-20"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+        ) : (
+          <div className="mt-5 space-y-5 text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              {p && <Badge variant="outline" className={cn("h-6", p.cls)}>{p.label}</Badge>}
+              <Badge variant="outline">{STATUS_LABEL[t.status] ?? t.status}</Badge>
+            </div>
+
+            {t.description && (
+              <DetailBlock label="Descrição">
+                <p className="whitespace-pre-wrap text-sm leading-relaxed">{t.description}</p>
+              </DetailBlock>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <DetailItem label="Cliente" value={data?.client?.company ?? "—"} />
+              <DetailItem label="Contato" value={t.contact_name ?? data?.client?.contact_name ?? "—"} />
+              <DetailItem label="Telefone" value={t.contact_phone ?? data?.client?.phone ?? "—"} />
+              <DetailItem label="E-mail cliente" value={data?.client?.email ?? "—"} />
+              <DetailItem label="Equipamento" value={t.equipment ?? "—"} />
+              <DetailItem label="Nº de série" value={t.serial_number ?? "—"} />
+              <DetailItem label="Endereço" value={t.address ?? "—"} className="col-span-2" />
+            </div>
+
+            <DetailBlock label="Atribuído a">
+              {data?.assignee ? (
+                <div className="rounded-lg border border-border bg-surface-muted/40 p-3">
+                  <div className="text-sm font-semibold">{data.assignee.full_name}</div>
+                  <div className="text-xs text-muted-foreground">{data.assignee.job_title ?? "Técnico"}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">{data.assignee.email}{data.assignee.phone ? ` · ${data.assignee.phone}` : ""}</div>
+                </div>
+              ) : (
+                <span className="text-sm text-muted-foreground">Sem responsável definido.</span>
+              )}
+            </DetailBlock>
+
+            <div className="grid grid-cols-2 gap-3">
+              <DetailItem label="Criado em" value={new Date(t.created_at).toLocaleString("pt-BR")} />
+              <DetailItem label="Criado por" value={data?.creator?.full_name ?? "—"} />
+              <DetailItem label="Iniciado em" value={t.started_at ? new Date(t.started_at).toLocaleString("pt-BR") : "—"} />
+              <DetailItem label="Encerrado em" value={t.closed_at ? new Date(t.closed_at).toLocaleString("pt-BR") : "—"} />
+              <DetailItem label="SLA" value={t.deadline ? new Date(t.deadline).toLocaleString("pt-BR") : "—"} className="col-span-2" />
+            </div>
+
+            <div className="pt-2">
+              <Link
+                to="/chamados/$id" params={{ id: t.id }}
+                onClick={() => onOpenChange(false)}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+              >
+                Abrir página completa <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function DetailItem({ label, value, className }: { label: string; value: string; className?: string }) {
+  return (
+    <div className={className}>
+      <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mt-0.5 text-sm">{value}</div>
+    </div>
+  );
+}
+
+function DetailBlock({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
+      {children}
+    </div>
   );
 }
 
