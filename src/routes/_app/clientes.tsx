@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_app/clientes")({ component: ClientsPage });
@@ -165,29 +165,36 @@ function ClientsPage() {
         )}
       </div>
 
-      <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) setEditing(null); }}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>{editing?.id ? "Editar cliente" : "Novo cliente"}</DialogTitle></DialogHeader>
-          {editing && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <F label="Empresa *"><Input value={editing.company} onChange={(e) => setEditing({ ...editing, company: e.target.value })} /></F>
-              <F label="Contato"><Input value={editing.contact_name ?? ""} onChange={(e) => setEditing({ ...editing, contact_name: e.target.value })} /></F>
-              <F label="E-mail"><Input type="email" value={editing.email ?? ""} onChange={(e) => setEditing({ ...editing, email: e.target.value })} /></F>
-              <F label="Telefone"><Input value={editing.phone ?? ""} onChange={(e) => setEditing({ ...editing, phone: e.target.value })} /></F>
-              <F label="Cidade"><Input value={editing.city ?? ""} onChange={(e) => setEditing({ ...editing, city: e.target.value })} /></F>
-              <F label="Estado"><Input value={editing.state ?? ""} onChange={(e) => setEditing({ ...editing, state: e.target.value })} /></F>
-              <F label="Endereço" full><Input value={editing.address ?? ""} onChange={(e) => setEditing({ ...editing, address: e.target.value })} /></F>
-              <F label="Observações" full><Textarea rows={3} value={editing.notes ?? ""} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} /></F>
-            </div>
-          )}
-          <DialogFooter>
+      <Sheet open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) setEditing(null); }}>
+        <SheetContent side="right" className="w-full sm:max-w-xl flex flex-col gap-0 p-0">
+          <SheetHeader className="border-b border-border px-6 py-4">
+            <SheetTitle>{editing?.id ? "Editar cliente" : "Novo cliente"}</SheetTitle>
+            <SheetDescription className="text-xs">
+              {editing?.id ? "Atualize os dados desta empresa cliente." : "Preencha os dados para cadastrar uma nova empresa cliente."}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            {editing && (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <F label="Empresa *" full><Input value={editing.company} onChange={(e) => setEditing({ ...editing, company: e.target.value })} placeholder="Nome da empresa" /></F>
+                <F label="Contato"><Input value={editing.contact_name ?? ""} onChange={(e) => setEditing({ ...editing, contact_name: e.target.value })} placeholder="Pessoa responsável" /></F>
+                <F label="E-mail"><Input type="email" value={editing.email ?? ""} onChange={(e) => setEditing({ ...editing, email: e.target.value })} placeholder="contato@empresa.com" /></F>
+                <F label="Telefone"><Input value={editing.phone ?? ""} onChange={(e) => setEditing({ ...editing, phone: e.target.value })} placeholder="(11) 99999-0000" /></F>
+                <F label="Cidade"><Input value={editing.city ?? ""} onChange={(e) => setEditing({ ...editing, city: e.target.value })} /></F>
+                <F label="Estado"><Input value={editing.state ?? ""} onChange={(e) => setEditing({ ...editing, state: e.target.value })} maxLength={2} /></F>
+                <F label="Endereço" full><Input value={editing.address ?? ""} onChange={(e) => setEditing({ ...editing, address: e.target.value })} /></F>
+                <F label="Observações" full><Textarea rows={4} value={editing.notes ?? ""} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} placeholder="Notas internas sobre este cliente" /></F>
+              </div>
+            )}
+          </div>
+          <SheetFooter className="border-t border-border px-6 py-3">
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
             <Button onClick={() => editing && upsert.mutate(editing)} disabled={!editing?.company || upsert.isPending}>
-              {upsert.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Salvar
+              {upsert.isPending && <Loader2 className="h-4 w-4 animate-spin" />} {editing?.id ? "Salvar alterações" : "Cadastrar cliente"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       <AlertDialog open={!!confirmDel} onOpenChange={(o) => !o && setConfirmDel(null)}>
         <AlertDialogContent>
