@@ -1,84 +1,60 @@
-## Plano de correção preciso
+## Plano de implementação
 
-### 1) Remover o ícone de mensagens do topo
-- Remover o componente `MessagesBell` do header do painel.
-- Remover também o import dele em `_app.tsx`.
-- Manter o sino de notificações normal, sem alterar o fluxo existente.
+### 1. Chamados — abrir detalhes na setinha
+- Em `src/routes/_app/chamados.tsx`, transformar o `ChevronRight` (linha do card) num botão que abre um `Sheet` lateral com todos os detalhes do chamado (cliente, contato, equipamento, descrição, prioridade, status, responsável, datas, histórico básico). Não remove navegação existente.
 
-### 2) Badge vermelho no menu “Mensagens” da sidebar
-- Reaproveitar a contagem de mensagens não lidas.
-- Mostrar o badge vermelho diretamente no item “Mensagens” do menu lateral, acima/ao lado do nome conforme o espaço do sidebar permitir.
-- No estado colapsado, manter o badge pequeno sobre o ícone.
-- Não criar outro ícone no topo.
+### 2. Configurações → Organização (CNPJ + e-mail)
+- `src/routes/_app/configuracoes.tsx`: adicionar campo CNPJ (máscara simples) e manter e-mail de contato.
+- Persistir em `app_settings.key='organization'` como `{ name, cnpj, contact_email }`.
+- `src/components/cracha-card.tsx` (verso): ler `organization` settings via query e exibir e-mail + CNPJ atualizados automaticamente. Invalidação por realtime/refetch ao salvar configurações.
 
-### 3) Corrigir “Meu Perfil” no painel do técnico
-- Ajustar o container para ocupar a largura útil do layout corretamente, sem ficar jogado para a direita e sem centralizar tudo.
-- Usar grid responsivo: cartão de foto/dados em uma coluna lateral controlada e formulário usando o restante do espaço no desktop.
-- No mobile, empilhar tudo com padding correto, sem sobras laterais e sem quebrar campos.
+### 3. Atribuição — botão excluir
+- `src/routes/_app/atribuicao.tsx`: adicionar ação "Excluir" no item da lista com `AlertDialog`. Ao confirmar, deleta o ticket (`tickets` delete) e invalida queries de `chamados` e `atribuicao`.
 
-### 4) Remover o bloco extra de “Chamados a atribuir” da tela Chamados
-- Remover apenas o bloco destacado mostrado no print dentro de `Chamados`.
-- Não remover a rota nem o menu “Atribuição”.
-- Manter a sincronização de atribuição funcionando via lista principal e realtime.
+### 4. Status online/offline da equipe
+- `src/hooks/use-auth.tsx` (ou novo `use-presence.tsx`): ao logar, marca `profiles.status='online'` e `last_seen_at=now()`; no logout / `beforeunload` / visibility hidden por X segundos → `offline`. Heartbeat a cada 30s.
+- `src/routes/_app/tecnicos.tsx`: exibir badge online/offline lendo `profiles.status` em tempo real (realtime subscription).
 
-### 5) Remover “Sem responsável” da aba/filtro de Chamados
-- Tirar o filtro/aba “Sem responsável” da tela de Chamados.
-- Manter chamados sem técnico aparecendo normalmente em “Todos” e nos status corretos.
-- Manter a aba “Atribuição” separada intacta.
+### 5. Mensagens — botão excluir ao lado do olhinho
+- `src/routes/_app/mensagens.tsx`: na coluna de ações da conversa/lista, adicionar `Trash2` que confirma e deleta a mensagem em `technician_messages` (RLS já permite autor/staff).
 
-### 6) Popover do Kanban no lugar certo
-- Tirar o popover do botão/área errada do card.
-- Colocar o popover na setinha do topo do card/coluna indicada pelo comportamento atual, sem interferir no arrastar do Kanban.
-- Manter ações: abrir chamado, atribuir/reatribuir, avançar status, encerrar, cancelar.
+### 6. Segurança anti-F12 reforçada
+- `src/hooks/use-anti-tamper.tsx`: ampliar — bloquear F12, Ctrl+Shift+I/J/C/U, Ctrl+U, menu de contexto, detectar DevTools aberto (debugger trap + dimensão window), limpar console periodicamente, desabilitar seleção em áreas sensíveis. Aplicar somente em rotas autenticadas para não atrapalhar login/cadastro público. Sem afetar UX nem performance.
 
-### 7) Chamados no painel técnico 100% responsivo
-- Para técnico comum, a tela `Chamados` será lista normal, sem Kanban.
-- Layout mobile com cards/lista limpa, sem tabela apertada e sem overflow horizontal.
-- Chamado atribuído ao técnico deve aparecer automaticamente pela query + realtime, sem delay perceptível.
-- Staff/admin continuam com opção de lista/Kanban.
+### 7. Superadmin `admin@painel.com`
+- `src/hooks/use-permissions.tsx`: helper `isSuperAdmin = email === 'admin@painel.com'`.
+- `src/routes/_app/tecnicos.tsx`: botões de ação ficam clicáveis só para superadmin; outros admins veem com `opacity-50 pointer-events-none` e tooltip "Apenas o superadministrador pode executar esta ação".
+- Reforço no servidor: nada extra (RLS continua igual); a restrição é de UI conforme pedido ("outro admin pode ver, não clicar").
 
-### 8) Mensagens no mobile
-- Ajustar o chat do técnico para ocupar a tela como conversa nativa, não como modal.
-- Reduzir o placeholder para `Escreva algo.`
-- Fixar área de digitação no rodapé do chat, com altura segura para mobile.
-- Melhorar scroll e largura das bolhas para não estourar a tela.
+### 8. Escalabilidade / mensagens não oscila
+- `src/router.tsx` (queryClient): aumentar `staleTime` padrão (30s) e `gcTime` (5min), `refetchOnWindowFocus:false`.
+- `mensagens.tsx`: usar canal realtime único compartilhado, debounce de scroll, `keepPreviousData` para evitar flicker.
+- Sem mudanças de design.
 
-### 9) Eliminar flicker/recarregamento rápido ao trocar de tela
-- Remover qualquer navegação manual desnecessária que cause refresh visual.
-- Trocar navegações problemáticas por `Link`/`navigate` interno do TanStack quando aplicável.
-- Evitar troca para tela de loading quando o usuário e sessão já existem.
-- Ajustar queries sensíveis com `staleTime`, `refetchOnWindowFocus: false` e cache estável, sem deixar lento.
-- Verificar o hook de permissões/sidebar para impedir “pisca” de menu ao navegar.
+### 9. Login → "Esqueci minha senha"
+- `src/routes/login.tsx`: transformar o link num botão que abre um `Dialog` responsivo com mensagem profissional: "Para recuperar seu acesso, entre em contato com o administrador deste painel." + botão "Entendi".
 
-### 10) Administradores: ações com editar, ver e excluir
-- Na lista de administradores, substituir o clique no badge por uma área de ações clara.
-- Adicionar três botões com ícones:
-  - editar
-  - ver
-  - excluir
-- Manter a confirmação antes de excluir/revogar acesso.
-- Não alterar permissões além do necessário para essas ações visuais/funcionais.
+### 10. Modal de boas-vindas (admin + técnico)
+- Novo `src/components/welcome-tour.tsx`: `Dialog` modal não-fechável (`onOpenChange` ignorado até final), com slider de 4–5 passos (`Próximo` / `Voltar` / `Começar`).
+- Conteúdo distinto para admin e técnico (textos diferentes).
+- Persistir flag em `localStorage` (`welcome_seen_${userId}`) — primeira vez sempre aparece para qualquer usuário existente que ainda não viu.
+- Acionado em `src/routes/_app.tsx` após autenticação.
+- Design sóbrio, sem neon, responsivo total.
 
-### 11) Suporte para deploy na Vercel
-- Ajustar configuração sem quebrar o preview atual do Lovable.
-- Usar Nitro/TanStack Start com preset Vercel somente quando o ambiente for Vercel.
-- Adicionar configuração mínima de deploy se necessário, mantendo `bun run build` como build command.
-- Não expor secrets nem alterar `.env`.
+### Arquivos a tocar
+- src/routes/_app/chamados.tsx
+- src/routes/_app/atribuicao.tsx
+- src/routes/_app/configuracoes.tsx
+- src/routes/_app/tecnicos.tsx
+- src/routes/_app/mensagens.tsx
+- src/routes/_app.tsx
+- src/routes/login.tsx
+- src/components/cracha-card.tsx
+- src/components/welcome-tour.tsx (novo)
+- src/hooks/use-anti-tamper.tsx
+- src/hooks/use-auth.tsx (ou novo use-presence.tsx)
+- src/hooks/use-permissions.tsx
+- src/router.tsx
 
-### Arquivos que serão tocados
-- `src/routes/_app.tsx`
-- `src/components/app-sidebar.tsx`
-- `src/components/messages-bell.tsx` será removido se não ficar mais usado
-- `src/routes/_app/meu-perfil.tsx`
-- `src/routes/_app/chamados.tsx`
-- `src/routes/_app/mensagens.tsx`
-- `src/routes/_app/administradores.tsx`
-- `src/hooks/use-permissions.tsx` se for necessário para parar o flicker
-- `vite.config.ts` e possivelmente `vercel.json` para deploy Vercel
-
-### Garantias
-- Não remover “Atribuição”.
-- Não remover menus existentes além do ícone extra de mensagens no topo.
-- Não mexer em banco de dados sem necessidade.
-- Não alterar fluxo de autenticação além do necessário para parar flicker.
-- Validar com build/teste automático do harness após implementação.
+### Sem mudanças
+- Design tokens, layout geral, schema do banco (apenas valores em `app_settings`).
