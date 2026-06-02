@@ -48,13 +48,14 @@ const STATUS_LABEL: Record<string, string> = {
   partially_resolved: "Parcial", not_resolved: "Não resolvido", cancelled: "Cancelado",
 };
 
-const KANBAN_COLUMNS: { key: string; label: string; cls: string }[] = [
-  { key: "open", label: "Abertos", cls: "border-info/30 bg-info/5" },
-  { key: "in_progress", label: "Em andamento", cls: "border-amber-500/30 bg-amber-500/5" },
-  { key: "waiting_part", label: "Aguardando peça", cls: "border-purple-500/30 bg-purple-500/5" },
-  { key: "resolved", label: "Resolvidos", cls: "border-success/30 bg-success/5" },
-  { key: "not_resolved", label: "Não resolvidos", cls: "border-destructive/30 bg-destructive/5" },
-  { key: "cancelled", label: "Cancelados", cls: "border-border bg-muted/30" },
+const KANBAN_COLUMNS: { key: string; label: string; stripe: string; dot: string }[] = [
+  { key: "open",               label: "Abertos",         stripe: "bg-info",         dot: "text-info" },
+  { key: "in_progress",        label: "Em andamento",    stripe: "bg-amber-500",    dot: "text-amber-500" },
+  { key: "waiting_part",       label: "Aguardando peça", stripe: "bg-purple-500",   dot: "text-purple-500" },
+  { key: "resolved",           label: "Resolvidos",      stripe: "bg-success",      dot: "text-success" },
+  { key: "not_resolved",       label: "Não resolvidos",  stripe: "bg-destructive",  dot: "text-destructive" },
+  { key: "cancelled",          label: "Cancelados",      stripe: "bg-muted-foreground/50", dot: "text-muted-foreground" },
+  { key: "closed",             label: "Finalizados",     stripe: "bg-primary",      dot: "text-primary" },
 ];
 
 const PRIORITY: Record<Ticket["priority"], { label: string; cls: string; dot: string }> = {
