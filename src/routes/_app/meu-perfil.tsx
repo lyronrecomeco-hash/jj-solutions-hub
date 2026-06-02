@@ -129,7 +129,7 @@ function MyProfilePage() {
   const currentPhoto = photoPreview ?? (profile as any).photo_url ?? profile.avatar_url ?? null;
 
   return (
-    <div className="w-full max-w-6xl px-3 py-4 sm:px-6 lg:px-8 lg:py-6">
+    <div className="w-full px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Conta</p>
@@ -141,52 +141,62 @@ function MyProfilePage() {
         </Button>
       </header>
 
-      <div className="mb-5 flex flex-col gap-4 rounded-xl border border-border bg-surface p-4 shadow-soft sm:flex-row sm:items-center sm:gap-5 sm:p-5">
-        <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-primary ring-2 ring-border sm:h-24 sm:w-24">
-          {currentPhoto
-            ? <img src={currentPhoto} alt="" className="h-full w-full object-cover" />
-            : <UserIcon className="h-10 w-10" />}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="font-display text-lg font-semibold">{form.full_name || "—"}</div>
-          <div className="text-xs text-muted-foreground">{form.job_title || "Técnico"} · {form.specialty || "—"}</div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickFile} />
-            <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
-              <Upload className="h-3.5 w-3.5" /> Trocar foto
-            </Button>
-            {photoFile && (
-              <Button size="sm" variant="ghost" onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}>
-                Cancelar
+      <div className="grid w-full gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="space-y-4">
+          <div className="rounded-xl border border-border bg-surface p-5 shadow-soft">
+            <div className="flex flex-col items-center text-center">
+              <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-primary ring-2 ring-border">
+                {currentPhoto
+                  ? <img src={currentPhoto} alt="" className="h-full w-full object-cover" />
+                  : <UserIcon className="h-10 w-10" />}
+              </div>
+              <div className="mt-3 font-display text-lg font-semibold">{form.full_name || "—"}</div>
+              <div className="text-xs text-muted-foreground">{form.job_title || "Técnico"}</div>
+              <div className="text-[11px] text-muted-foreground">{form.specialty || "—"}</div>
+            </div>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickFile} />
+              <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
+                <Upload className="h-3.5 w-3.5" /> Trocar foto
               </Button>
-            )}
+              {photoFile && (
+                <Button size="sm" variant="ghost" onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}>
+                  Cancelar
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
+        </aside>
 
-      <div className="grid gap-4 rounded-xl border border-border bg-surface p-4 shadow-soft sm:grid-cols-2 sm:p-5">
-        <Field label="Nome completo" v={form.full_name} on={(v) => setForm({ ...form, full_name: v })} full />
-        <Field label="Telefone" v={form.phone} on={(v) => setForm({ ...form, phone: v })} />
-        <Field label="Cargo" v={form.job_title} on={(v) => setForm({ ...form, job_title: v })} />
-        <Field label="Especialidade" v={form.specialty} on={(v) => setForm({ ...form, specialty: v })} full />
-        <div className="sm:col-span-2 space-y-1.5">
-          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Bio</Label>
-          <Textarea rows={3} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Uma breve apresentação…" />
-        </div>
-        <Field label="CEP" v={form.cep} on={(v) => setForm({ ...form, cep: v })} />
-        <Field label="Endereço" v={form.address} on={(v) => setForm({ ...form, address: v })} />
-        <Field label="Número" v={form.address_number} on={(v) => setForm({ ...form, address_number: v })} />
-        <Field label="Complemento" v={form.address_complement} on={(v) => setForm({ ...form, address_complement: v })} />
-        <Field label="Bairro" v={form.neighborhood} on={(v) => setForm({ ...form, neighborhood: v })} />
-        <Field label="Cidade" v={form.city} on={(v) => setForm({ ...form, city: v })} />
-        <Field label="Estado" v={form.state} on={(v) => setForm({ ...form, state: v })} />
-      </div>
+        <section className="space-y-5">
+          <div className="grid gap-4 rounded-xl border border-border bg-surface p-5 shadow-soft sm:grid-cols-2">
+            <Field label="Nome completo" v={form.full_name} on={(v) => setForm({ ...form, full_name: v })} full />
+            <Field label="Telefone" v={form.phone} on={(v) => setForm({ ...form, phone: v })} />
+            <Field label="Cargo" v={form.job_title} on={(v) => setForm({ ...form, job_title: v })} />
+            <Field label="Especialidade" v={form.specialty} on={(v) => setForm({ ...form, specialty: v })} full />
+            <div className="sm:col-span-2 space-y-1.5">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Bio</Label>
+              <Textarea rows={3} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Uma breve apresentação…" />
+            </div>
+          </div>
 
-      <div className="mt-5 flex justify-end gap-2">
-        <Button onClick={() => save.mutate()} disabled={save.isPending}>
-          {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Salvar alterações
-        </Button>
+          <div className="grid gap-4 rounded-xl border border-border bg-surface p-5 shadow-soft sm:grid-cols-2">
+            <Field label="CEP" v={form.cep} on={(v) => setForm({ ...form, cep: v })} />
+            <Field label="Endereço" v={form.address} on={(v) => setForm({ ...form, address: v })} full />
+            <Field label="Número" v={form.address_number} on={(v) => setForm({ ...form, address_number: v })} />
+            <Field label="Complemento" v={form.address_complement} on={(v) => setForm({ ...form, address_complement: v })} />
+            <Field label="Bairro" v={form.neighborhood} on={(v) => setForm({ ...form, neighborhood: v })} />
+            <Field label="Cidade" v={form.city} on={(v) => setForm({ ...form, city: v })} />
+            <Field label="Estado" v={form.state} on={(v) => setForm({ ...form, state: v })} />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => save.mutate()} disabled={save.isPending}>
+              {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Salvar alterações
+            </Button>
+          </div>
+        </section>
       </div>
 
       <CrachaModal
