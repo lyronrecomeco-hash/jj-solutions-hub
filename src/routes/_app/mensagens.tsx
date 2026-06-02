@@ -334,7 +334,7 @@ function ChatPanel({ tech, embedded, mobile }: { tech: Tech | null; embedded?: b
             )}
             <Textarea
               value={text} onChange={(e) => setText(e.target.value)}
-              placeholder="Escreva uma mensagem ou anexe uma evidência…"
+              placeholder="Escreva algo."
               rows={1} className="min-h-[44px] resize-none bg-surface-muted"
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if ((text || file) && !send.isPending) send.mutate(); }}}
             />

@@ -6,7 +6,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationsBell } from "@/components/notifications-bell";
-import { MessagesBell } from "@/components/messages-bell";
+
 import { useAuth } from "@/hooks/use-auth";
 import { useGeolocationTracker } from "@/hooks/use-geolocation-tracker";
 import { useAntiTamper } from "@/hooks/use-anti-tamper";
@@ -50,7 +50,6 @@ function AppLayout() {
           </div>
           <div className="ml-auto flex items-center gap-1">
             <ThemeToggle />
-            <MessagesBell />
             <NotificationsBell />
             <Separator orientation="vertical" className="mx-1 h-6" />
             <div className="hidden items-center gap-2 pl-1 sm:flex">

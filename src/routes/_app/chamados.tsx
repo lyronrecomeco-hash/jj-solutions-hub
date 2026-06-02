@@ -157,21 +157,22 @@ function TicketsPage() {
         <Mini label="Críticos" value={counts.critical} icon={AlertTriangle} tone="destructive" />
       </div>
 
-      {isStaff && <UnassignedStrip tickets={unassignedTickets} />}
+      
 
       <div className="rounded-xl border border-border bg-surface shadow-soft">
-        <div className="flex flex-wrap items-center gap-3 border-b border-border p-3">
-          <Tabs value={view} onValueChange={(v) => setView(v as any)}>
-            <TabsList className="bg-surface-muted">
-              <TabsTrigger value="list"><LayoutList className="mr-1 h-3.5 w-3.5" /> Lista</TabsTrigger>
-              <TabsTrigger value="kanban"><KanbanSquare className="mr-1 h-3.5 w-3.5" /> Kanban</TabsTrigger>
-            </TabsList>
-          </Tabs>
+        <div className="flex flex-col gap-3 border-b border-border p-3 sm:flex-row sm:flex-wrap sm:items-center">
+          {isStaff && (
+            <Tabs value={view} onValueChange={(v) => setView(v as any)}>
+              <TabsList className="bg-surface-muted">
+                <TabsTrigger value="list"><LayoutList className="mr-1 h-3.5 w-3.5" /> Lista</TabsTrigger>
+                <TabsTrigger value="kanban"><KanbanSquare className="mr-1 h-3.5 w-3.5" /> Kanban</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
           {view === "list" && (
-            <Tabs value={tab} onValueChange={setTab} className="flex-1">
+            <Tabs value={tab} onValueChange={setTab} className="flex-1 min-w-0 overflow-x-auto">
               <TabsList className="bg-surface-muted">
                 <TabsTrigger value="all">Todos</TabsTrigger>
-                <TabsTrigger value="unassigned">Sem responsável</TabsTrigger>
                 <TabsTrigger value="open">Abertos</TabsTrigger>
                 <TabsTrigger value="in_progress">Em andamento</TabsTrigger>
                 <TabsTrigger value="waiting_part">Aguardando peça</TabsTrigger>
@@ -184,7 +185,7 @@ function TicketsPage() {
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar chamado…" className="h-9 pl-9 bg-surface-muted" />
           </div>
           <Select value={priority} onValueChange={setPriority}>
-            <SelectTrigger className="h-9 w-[170px] bg-surface-muted"><Filter className="h-3.5 w-3.5 mr-1" /><SelectValue placeholder="Prioridade" /></SelectTrigger>
+            <SelectTrigger className="h-9 w-full sm:w-[170px] bg-surface-muted"><Filter className="h-3.5 w-3.5 mr-1" /><SelectValue placeholder="Prioridade" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas prioridades</SelectItem>
               <SelectItem value="critical">Crítica</SelectItem>
@@ -195,7 +196,7 @@ function TicketsPage() {
           </Select>
         </div>
 
-        {view === "list" ? (
+        {view === "list" || !isStaff ? (
           isLoading ? (
             <div className="py-16 text-center text-muted-foreground"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></div>
           ) : filtered.length === 0 ? (
