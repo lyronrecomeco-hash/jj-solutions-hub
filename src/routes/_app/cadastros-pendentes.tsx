@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Check, X, Loader2, ClipboardList, ChevronLeft, ChevronRight, Eye, Pause, Trash2, Mail, Phone, MapPin, Calendar, IdCard } from "lucide-react";
+import { Check, X, Loader2, ClipboardList, ChevronLeft, ChevronRight, Eye, Pause, Trash2, Mail, Phone, MapPin, Calendar, IdCard, KeyRound, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -13,13 +13,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { reviewTechnicianSignup } from "@/lib/api/technicians.functions";
 import { holdTechnicianSignup, deleteTechnicianSignup } from "@/lib/api/signups.functions";
+import { StaffCreateSheet } from "@/components/staff-create-sheet";
 
 export const Route = createFileRoute("/_app/cadastros-pendentes")({ component: PendingPage });
 
 type Row = {
   id: string; full_name: string; email: string; phone: string | null;
   specialty: string | null; desired_employment_type: string; city: string | null; state: string | null;
-  address: string | null; cpf: string | null; rg: string | null; birth_date: string | null;
+  address: string | null; address_number: string | null; address_complement: string | null;
+  neighborhood: string | null; cep: string | null;
+  cpf: string | null; rg: string | null; birth_date: string | null;
+  document_url: string | null; document_type: string | null;
   status: "pending" | "approved" | "rejected" | "on_hold"; created_at: string;
 };
 
@@ -32,6 +36,7 @@ function PendingPage() {
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected" | "on_hold">("pending");
   const [page, setPage] = useState(1);
   const [viewing, setViewing] = useState<Row | null>(null);
+  const [assigning, setAssigning] = useState<Row | null>(null);
   const [confirmDel, setConfirmDel] = useState<Row | null>(null);
 
   const review = useServerFn(reviewTechnicianSignup);
@@ -40,9 +45,9 @@ function PendingPage() {
 
   async function load() {
     setLoading(true);
-    const { data } = await supabase
-      .from("technician_signups")
-      .select("id, full_name, email, phone, specialty, desired_employment_type, city, state, address, cpf, rg, birth_date, status, created_at")
+    const { data } = await (supabase
+      .from("technician_signups") as any)
+      .select("id, full_name, email, phone, specialty, desired_employment_type, city, state, address, address_number, address_complement, neighborhood, cep, cpf, rg, birth_date, document_url, document_type, status, created_at")
       .order("created_at", { ascending: false });
     setRows((data ?? []) as Row[]);
     setLoading(false);
@@ -160,9 +165,11 @@ function PendingPage() {
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex gap-1">
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setViewing(r)} title="Ver"><Eye className="h-4 w-4" /></Button>
+                      {r.status !== "rejected" && (
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-primary hover:text-primary" onClick={() => setAssigning(r)} title="Atribuir login"><KeyRound className="h-4 w-4" /></Button>
+                      )}
                       {r.status === "pending" && (
                         <>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-success hover:text-success" onClick={() => decide(r.id, "approved")} title="Aprovar"><Check className="h-4 w-4" /></Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => decide(r.id, "rejected")} title="Rejeitar"><X className="h-4 w-4" /></Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => holdOne(r.id)} title="Em espera"><Pause className="h-4 w-4" /></Button>
                         </>
@@ -187,7 +194,7 @@ function PendingPage() {
       </div>
 
       <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{viewing?.full_name}</DialogTitle></DialogHeader>
           {viewing && (
             <div className="space-y-4">
@@ -203,20 +210,65 @@ function PendingPage() {
                 <Info icon={IdCard} label="RG" v={viewing.rg} />
                 <Info icon={Calendar} label="Nascimento" v={viewing.birth_date ? new Date(viewing.birth_date).toLocaleDateString("pt-BR") : null} />
                 <Info icon={MapPin} label="Cidade" v={[viewing.city, viewing.state].filter(Boolean).join(" / ")} />
-                <Info icon={MapPin} label="Endereço" v={viewing.address} full />
+                <Info icon={MapPin} label="Endereço" v={[viewing.address, viewing.address_number, viewing.neighborhood].filter(Boolean).join(", ")} full />
               </div>
-              <div className="text-[11px] text-muted-foreground">Enviado em {new Date(viewing.created_at).toLocaleString("pt-BR")}</div>
-              {viewing.status === "pending" && (
-                <div className="flex flex-wrap gap-2 border-t border-border pt-4">
-                  <Button onClick={() => { decide(viewing.id, "approved"); setViewing(null); }}><Check className="h-4 w-4" /> Aprovar</Button>
-                  <Button variant="outline" onClick={() => { decide(viewing.id, "rejected"); setViewing(null); }}><X className="h-4 w-4" /> Rejeitar</Button>
-                  <Button variant="outline" onClick={() => { holdOne(viewing.id); setViewing(null); }}><Pause className="h-4 w-4" /> Em espera</Button>
+
+              {viewing.document_url && (
+                <div className="rounded-lg border border-border bg-surface-muted/30 p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      <FileText className="h-3 w-3" /> Documento ({(viewing.document_type ?? "doc").toUpperCase()})
+                    </div>
+                    <a href={viewing.document_url} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary hover:underline">Abrir em nova aba</a>
+                  </div>
+                  {/\.(pdf)$/i.test(viewing.document_url) ? (
+                    <a href={viewing.document_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm hover:bg-accent">
+                      <FileText className="h-4 w-4" /> Abrir PDF
+                    </a>
+                  ) : (
+                    <img src={viewing.document_url} alt="Documento" className="max-h-72 w-full rounded-md object-contain" />
+                  )}
                 </div>
               )}
+
+              <div className="text-[11px] text-muted-foreground">Enviado em {new Date(viewing.created_at).toLocaleString("pt-BR")}</div>
+
+              <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+                {viewing.status !== "rejected" && (
+                  <Button onClick={() => { setAssigning(viewing); setViewing(null); }}>
+                    <KeyRound className="h-4 w-4" /> Atribuir login
+                  </Button>
+                )}
+                {viewing.status === "pending" && (
+                  <>
+                    <Button variant="outline" onClick={() => { decide(viewing.id, "rejected"); setViewing(null); }}><X className="h-4 w-4" /> Rejeitar</Button>
+                    <Button variant="outline" onClick={() => { holdOne(viewing.id); setViewing(null); }}><Pause className="h-4 w-4" /> Em espera</Button>
+                  </>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {assigning && (
+        <StaffCreateSheet
+          open={!!assigning}
+          onOpenChange={(o) => !o && setAssigning(null)}
+          title={`Atribuir login a ${assigning.full_name}`}
+          prefill={{
+            full_name: assigning.full_name, email: assigning.email, phone: assigning.phone,
+            cpf: assigning.cpf, rg: assigning.rg, birth_date: assigning.birth_date,
+            cep: assigning.cep, address: assigning.address, address_number: assigning.address_number,
+            address_complement: assigning.address_complement, neighborhood: assigning.neighborhood,
+            city: assigning.city, state: assigning.state, specialty: assigning.specialty,
+          }}
+          onCreated={async () => {
+            await review({ data: { signup_id: assigning.id, decision: "approved" } });
+            load();
+          }}
+        />
+      )}
 
       <AlertDialog open={!!confirmDel} onOpenChange={(o) => !o && setConfirmDel(null)}>
         <AlertDialogContent>
