@@ -49,6 +49,7 @@ function TechniciansPage() {
   const [editFor, setEditFor] = useState<Row | null>(null);
   const [statsFor, setStatsFor] = useState<Row | null>(null);
   const [deleteFor, setDeleteFor] = useState<Row | null>(null);
+  const [trackFor, setTrackFor] = useState<Row | null>(null);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["technicians"],
