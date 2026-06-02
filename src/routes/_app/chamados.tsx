@@ -102,7 +102,9 @@ function TicketsPage() {
   }, [qc]);
 
   const filtered = useMemo(() => tickets.filter((t) => {
-    if (tab !== "all" && t.status !== tab) return false;
+    if (tab === "unassigned") {
+      if (t.assigned_to) return false;
+    } else if (tab !== "all" && t.status !== tab) return false;
     if (priority !== "all" && t.priority !== priority) return false;
     if (q && ![t.title, t.ticket_number, t.contact_name, t.clients?.company].join(" ").toLowerCase().includes(q.toLowerCase())) return false;
     return true;
