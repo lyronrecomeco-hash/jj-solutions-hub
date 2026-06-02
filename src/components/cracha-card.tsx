@@ -29,7 +29,8 @@ interface Props {
 export const CrachaCard = forwardRef<HTMLDivElement, Props>(({ tech, className }, ref) => {
   const initials = (tech.full_name || "JJ")
     .split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
-  const qrValue = `https://jjinformatica.app/validar/${tech.id}`;
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://jjinformatica.app";
+  const qrValue = `${origin}/validar/${tech.id}`;
 
   return (
     <div
