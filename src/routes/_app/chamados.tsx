@@ -407,7 +407,15 @@ function KanbanCard({ t, dragging }: { t: Ticket; dragging?: boolean }) {
             </button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-56 p-1">
-            <MenuItem icon={ExternalLink} label="Abrir chamado" to={`/chamados/${t.id}`} onClose={() => setMenuOpen(false)} />
+            <Link
+              to="/chamados/$id"
+              params={{ id: t.id }}
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface-muted"
+            >
+              <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+              Abrir chamado
+            </Link>
             <MenuButton
               icon={UserPlus}
               label={t.assigned_to ? "Reatribuir técnico" : "Atribuir técnico"}
