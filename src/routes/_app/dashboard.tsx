@@ -59,8 +59,8 @@ function DashboardPage() {
 
   const counts = aggregateCounts(tickets ?? []);
   const statusData = buildStatusData(tickets ?? []);
-  const productivityData = buildProductivityData();
-  const trendData = buildTrendData();
+  const productivityData = buildProductivityData(tickets ?? [], technicians ?? []);
+  const trendData = buildTrendData(tickets ?? []);
 
   return (
     <div className="w-full space-y-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
