@@ -92,11 +92,16 @@ function TicketDetailPage() {
     },
   });
 
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [closeOutcome, setCloseOutcome] = useState<"resolved" | "partially_resolved" | "not_resolved">("resolved");
+
   const setStatus = useMutation({
     mutationFn: async (status: string) => {
       const patch: any = { status };
       if (status === "in_progress" && !ticket?.started_at) patch.started_at = new Date().toISOString();
-      if (status === "resolved") patch.closed_at = new Date().toISOString();
+      if (["resolved", "partially_resolved", "not_resolved"].includes(status)) {
+        patch.closed_at = new Date().toISOString();
+      }
       const { error } = await supabase.from("tickets").update(patch).eq("id", id);
       if (error) throw new Error(error.message);
       if (user?.id) {
@@ -108,6 +113,7 @@ function TicketDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ticket", id] });
       qc.invalidateQueries({ queryKey: ["ticket-history", id] });
+      setCloseOpen(false);
       toast.success("Status atualizado");
     },
     onError: (e: any) => toast.error("Falha", { description: e?.message }),
@@ -115,6 +121,9 @@ function TicketDetailPage() {
 
   if (isLoading) return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
   if (!ticket) return <div className="px-6 py-10 text-sm text-muted-foreground">Chamado não encontrado.</div>;
+
+  const isClosed = ["resolved", "partially_resolved", "not_resolved"].includes(ticket.status);
+
 
   return (
     <div className="w-full space-y-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
