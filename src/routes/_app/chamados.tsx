@@ -524,28 +524,36 @@ function NewTicketSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (
 
   const mut = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("tickets").insert({
-        title: form.title,
-        description: form.description || null,
-        priority: form.priority,
-        client_id: form.client_id || null,
-        contact_name: form.contact_name || null,
-        contact_phone: form.contact_phone || null,
-        equipment: form.equipment || null,
-        address: form.address || null,
-        assigned_to: form.assigned_to || null,
-        created_by: user?.id ?? null,
-      });
+      const { data, error } = await supabase
+        .from("tickets")
+        .insert({
+          title: form.title,
+          description: form.description || null,
+          priority: form.priority,
+          client_id: form.client_id || null,
+          contact_name: form.contact_name || null,
+          contact_phone: form.contact_phone || null,
+          equipment: form.equipment || null,
+          address: form.address || null,
+          assigned_to: form.assigned_to || null,
+          created_by: user?.id ?? null,
+        })
+        .select("id, ticket_number, title, description, status, priority, client_id, contact_name, contact_phone, assigned_to, created_at, deadline, clients(company), profiles:assigned_to(full_name)")
+        .single();
       if (error) throw new Error(error.message);
+      return data as any;
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
       toast.success("Chamado criado");
+      // Optimistic prepend so it appears imediatamente sem aguardar refetch
+      qc.setQueryData<any[]>(["tickets-list"], (old) => [created, ...(old ?? [])]);
       qc.invalidateQueries({ queryKey: ["tickets-list"] });
       qc.invalidateQueries({ queryKey: ["dashboard-tickets"] });
+      qc.invalidateQueries({ queryKey: ["unassigned-tickets"] });
       setForm({ title: "", description: "", priority: "medium", client_id: "", contact_name: "", contact_phone: "", equipment: "", address: "", assigned_to: "" });
       onOpenChange(false);
     },
-    onError: (e: any) => toast.error("Falha", { description: e?.message }),
+    onError: (e: any) => toast.error("Falha ao criar chamado", { description: e?.message }),
   });
 
   return (
