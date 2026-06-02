@@ -153,8 +153,8 @@ function TicketDetailPage() {
               <Button variant="outline" onClick={() => setStatus.mutate("waiting_part")}>
                 <Pause className="h-4 w-4" /> Pausar
               </Button>
-              <Button onClick={() => setStatus.mutate("resolved")} disabled={setStatus.isPending}>
-                <CheckCircle2 className="h-4 w-4" /> Concluir
+              <Button onClick={() => setCloseOpen(true)} disabled={setStatus.isPending}>
+                <CheckCircle2 className="h-4 w-4" /> Encerrar chamado
               </Button>
             </>
           )}
@@ -163,8 +163,14 @@ function TicketDetailPage() {
               <Play className="h-4 w-4" /> Retomar
             </Button>
           )}
+          {isClosed && (
+            <Badge variant="outline" className="border-success/30 bg-success/10 text-success">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Encerrado
+            </Badge>
+          )}
         </div>
       </header>
+
 
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         <Tabs defaultValue="details">
