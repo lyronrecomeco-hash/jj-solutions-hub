@@ -1,10 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Plus, Search, Ticket, AlertTriangle, Clock, CheckCircle2, Filter, Loader2, ArrowRight,
+  Image as ImageIcon, LayoutList, KanbanSquare,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DndContext, DragEndEvent, DragOverlay, DragStartEvent,
+  PointerSensor, useDraggable, useDroppable, useSensor, useSensors,
+} from "@dnd-kit/core";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,15 +17,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Tabs, TabsContent, TabsList, TabsTrigger,
-} from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -49,6 +48,15 @@ const STATUS_LABEL: Record<string, string> = {
   partially_resolved: "Parcial", not_resolved: "Não resolvido", cancelled: "Cancelado",
 };
 
+const KANBAN_COLUMNS: { key: string; label: string; cls: string }[] = [
+  { key: "open", label: "Abertos", cls: "border-info/30 bg-info/5" },
+  { key: "in_progress", label: "Em andamento", cls: "border-amber-500/30 bg-amber-500/5" },
+  { key: "waiting_part", label: "Aguardando peça", cls: "border-purple-500/30 bg-purple-500/5" },
+  { key: "resolved", label: "Resolvidos", cls: "border-success/30 bg-success/5" },
+  { key: "not_resolved", label: "Não resolvidos", cls: "border-destructive/30 bg-destructive/5" },
+  { key: "cancelled", label: "Cancelados", cls: "border-border bg-muted/30" },
+];
+
 const PRIORITY: Record<Ticket["priority"], { label: string; cls: string; dot: string }> = {
   critical: { label: "Crítico", cls: "border-destructive/30 bg-destructive/10 text-destructive", dot: "bg-destructive" },
   high:     { label: "Alta",    cls: "border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300", dot: "bg-amber-500" },
@@ -57,10 +65,12 @@ const PRIORITY: Record<Ticket["priority"], { label: string; cls: string; dot: st
 };
 
 function TicketsPage() {
+  const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [tab, setTab] = useState("all");
   const [priority, setPriority] = useState<string>("all");
-  const [open, setOpen] = useState(false);
+  const [view, setView] = useState<"list" | "kanban">("list");
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ["tickets-list"],
@@ -73,6 +83,18 @@ function TicketsPage() {
       return (data ?? []) as unknown as Ticket[];
     },
   });
+
+  // Realtime: refetch on any ticket change
+  useEffect(() => {
+    const ch = supabase
+      .channel("tickets-board")
+      .on("postgres_changes", { event: "*", schema: "public", table: "tickets" }, () => {
+        qc.invalidateQueries({ queryKey: ["tickets-list"] });
+        qc.invalidateQueries({ queryKey: ["dashboard-tickets"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
 
   const filtered = useMemo(() => tickets.filter((t) => {
     if (tab !== "all" && t.status !== tab) return false;
@@ -96,12 +118,7 @@ function TicketsPage() {
           <h1 className="font-display text-2xl font-semibold tracking-tight">Chamados</h1>
           <p className="text-sm text-muted-foreground">Gestão completa de atendimentos técnicos.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4" /> Novo chamado</Button>
-          </DialogTrigger>
-          <NewTicketDialog onClose={() => setOpen(false)} />
-        </Dialog>
+        <Button onClick={() => setSheetOpen(true)}><Plus className="h-4 w-4" /> Novo chamado</Button>
       </header>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -113,15 +130,23 @@ function TicketsPage() {
 
       <div className="rounded-xl border border-border bg-surface shadow-soft">
         <div className="flex flex-wrap items-center gap-3 border-b border-border p-3">
-          <Tabs value={tab} onValueChange={setTab} className="flex-1">
+          <Tabs value={view} onValueChange={(v) => setView(v as any)}>
             <TabsList className="bg-surface-muted">
-              <TabsTrigger value="all">Todos</TabsTrigger>
-              <TabsTrigger value="open">Abertos</TabsTrigger>
-              <TabsTrigger value="in_progress">Em andamento</TabsTrigger>
-              <TabsTrigger value="waiting_part">Aguardando peça</TabsTrigger>
-              <TabsTrigger value="resolved">Resolvidos</TabsTrigger>
+              <TabsTrigger value="list"><LayoutList className="mr-1 h-3.5 w-3.5" /> Lista</TabsTrigger>
+              <TabsTrigger value="kanban"><KanbanSquare className="mr-1 h-3.5 w-3.5" /> Kanban</TabsTrigger>
             </TabsList>
           </Tabs>
+          {view === "list" && (
+            <Tabs value={tab} onValueChange={setTab} className="flex-1">
+              <TabsList className="bg-surface-muted">
+                <TabsTrigger value="all">Todos</TabsTrigger>
+                <TabsTrigger value="open">Abertos</TabsTrigger>
+                <TabsTrigger value="in_progress">Em andamento</TabsTrigger>
+                <TabsTrigger value="waiting_part">Aguardando peça</TabsTrigger>
+                <TabsTrigger value="resolved">Resolvidos</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
           <div className="relative w-64">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar chamado…" className="h-9 pl-9 bg-surface-muted" />
@@ -138,20 +163,22 @@ function TicketsPage() {
           </Select>
         </div>
 
-        <Tabs value={tab}>
-          <TabsContent value={tab} className="m-0">
-            {isLoading ? (
-              <div className="py-16 text-center text-muted-foreground"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></div>
-            ) : filtered.length === 0 ? (
-              <div className="py-16 text-center text-sm text-muted-foreground">Nenhum chamado encontrado.</div>
-            ) : (
-              <ul className="divide-y divide-border">
-                {filtered.map((t) => <TicketRow key={t.id} t={t} />)}
-              </ul>
-            )}
-          </TabsContent>
-        </Tabs>
+        {view === "list" ? (
+          isLoading ? (
+            <div className="py-16 text-center text-muted-foreground"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></div>
+          ) : filtered.length === 0 ? (
+            <div className="py-16 text-center text-sm text-muted-foreground">Nenhum chamado encontrado.</div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {filtered.map((t) => <TicketRow key={t.id} t={t} />)}
+            </ul>
+          )
+        ) : (
+          <KanbanBoard tickets={filtered} />
+        )}
       </div>
+
+      <NewTicketSheet open={sheetOpen} onOpenChange={setSheetOpen} />
     </div>
   );
 }
@@ -183,6 +210,129 @@ function TicketRow({ t }: { t: Ticket }) {
   );
 }
 
+function KanbanBoard({ tickets }: { tickets: Ticket[] }) {
+  const qc = useQueryClient();
+  const { isStaff } = useAuth();
+  const [active, setActive] = useState<Ticket | null>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const move = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const patch: any = { status };
+      if (status === "in_progress") patch.started_at = new Date().toISOString();
+      if (["resolved", "not_resolved", "cancelled", "partially_resolved"].includes(status)) {
+        patch.closed_at = new Date().toISOString();
+      }
+      const { error } = await supabase.from("tickets").update(patch).eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+    onMutate: async ({ id, status }) => {
+      await qc.cancelQueries({ queryKey: ["tickets-list"] });
+      const prev = qc.getQueryData<Ticket[]>(["tickets-list"]);
+      qc.setQueryData<Ticket[]>(["tickets-list"], (old) =>
+        (old ?? []).map((t) => t.id === id ? { ...t, status } : t)
+      );
+      return { prev };
+    },
+    onError: (e: any, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["tickets-list"], ctx.prev);
+      toast.error("Falha ao mover", { description: e?.message });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tickets-list"] }),
+  });
+
+  function onDragStart(e: DragStartEvent) {
+    const t = tickets.find((x) => x.id === e.active.id);
+    if (t) setActive(t);
+  }
+  function onDragEnd(e: DragEndEvent) {
+    setActive(null);
+    if (!isStaff) { toast.info("Só a gestão pode arrastar entre colunas."); return; }
+    const overId = e.over?.id as string | undefined;
+    const id = e.active.id as string;
+    if (!overId) return;
+    const t = tickets.find((x) => x.id === id);
+    if (!t || t.status === overId) return;
+    move.mutate({ id, status: overId });
+  }
+
+  return (
+    <div className="overflow-x-auto p-3">
+      <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+        <div className="flex min-w-max gap-3">
+          {KANBAN_COLUMNS.map((col) => {
+            const items = tickets.filter((t) => t.status === col.key);
+            return <Column key={col.key} col={col} items={items} />;
+          })}
+        </div>
+        <DragOverlay>
+          {active ? <KanbanCard t={active} dragging /> : null}
+        </DragOverlay>
+      </DndContext>
+    </div>
+  );
+}
+
+function Column({ col, items }: { col: { key: string; label: string; cls: string }; items: Ticket[] }) {
+  const { setNodeRef, isOver } = useDroppable({ id: col.key });
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "flex w-72 shrink-0 flex-col rounded-xl border p-2.5 transition",
+        col.cls,
+        isOver && "ring-2 ring-primary"
+      )}
+    >
+      <div className="mb-2 flex items-center justify-between px-1">
+        <div className="text-xs font-semibold uppercase tracking-wider">{col.label}</div>
+        <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{items.length}</Badge>
+      </div>
+      <div className="flex flex-col gap-2">
+        {items.length === 0 && (
+          <div className="rounded-lg border border-dashed border-border/60 py-6 text-center text-[11px] text-muted-foreground">Vazio</div>
+        )}
+        {items.map((t) => <KanbanCard key={t.id} t={t} />)}
+      </div>
+    </div>
+  );
+}
+
+function KanbanCard({ t, dragging }: { t: Ticket; dragging?: boolean }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: t.id });
+  const p = PRIORITY[t.priority];
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className={cn(
+        "group relative cursor-grab rounded-lg border border-border bg-surface p-3 shadow-soft transition active:cursor-grabbing",
+        isDragging && "opacity-50",
+        dragging && "rotate-2 shadow-lg"
+      )}
+    >
+      <span className={cn("absolute left-0 top-0 h-full w-1 rounded-l-lg", p.dot)} />
+      <div className="flex items-start justify-between gap-2 pl-1.5">
+        <span className="font-mono text-[10px] font-medium text-muted-foreground">{t.ticket_number}</span>
+        <Badge variant="outline" className={cn("h-4 px-1 text-[9px]", p.cls)}>{p.label}</Badge>
+      </div>
+      <Link to="/chamados/$id" params={{ id: t.id }} className="mt-1 block pl-1.5">
+        <div className="line-clamp-2 text-sm font-semibold leading-snug hover:underline">{t.title}</div>
+      </Link>
+      <div className="mt-1.5 truncate pl-1.5 text-[11px] text-muted-foreground">
+        {t.clients?.company ?? t.contact_name ?? "—"}
+      </div>
+      <div className="mt-2 flex items-center justify-between pl-1.5">
+        <span className="text-[10px] text-muted-foreground">{new Date(t.created_at).toLocaleDateString("pt-BR")}</span>
+        {t.profiles?.full_name && (
+          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">{t.profiles.full_name.split(" ")[0]}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Mini({ label, value, icon: Icon, tone }: { label: string; value: number; icon: any; tone: "info" | "success" | "warning" | "destructive" }) {
   const cls = {
     info: "text-info bg-info/10 dark:bg-info/15",
@@ -203,7 +353,7 @@ function Mini({ label, value, icon: Icon, tone }: { label: string; value: number
   );
 }
 
-function NewTicketDialog({ onClose }: { onClose: () => void }) {
+function NewTicketSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const qc = useQueryClient();
   const { user } = useAuth();
   const [form, setForm] = useState({
@@ -248,79 +398,84 @@ function NewTicketDialog({ onClose }: { onClose: () => void }) {
       toast.success("Chamado criado");
       qc.invalidateQueries({ queryKey: ["tickets-list"] });
       qc.invalidateQueries({ queryKey: ["dashboard-tickets"] });
-      onClose();
+      setForm({ title: "", description: "", priority: "medium", client_id: "", contact_name: "", contact_phone: "", equipment: "", address: "", assigned_to: "" });
+      onOpenChange(false);
     },
     onError: (e: any) => toast.error("Falha", { description: e?.message }),
   });
 
   return (
-    <DialogContent className="max-w-2xl">
-      <DialogHeader>
-        <DialogTitle>Novo chamado</DialogTitle>
-        <DialogDescription>Registre um atendimento técnico e atribua a um responsável.</DialogDescription>
-      </DialogHeader>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-2 space-y-1.5">
-          <Label>Título *</Label>
-          <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Resumo do problema" />
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>Novo chamado</SheetTitle>
+          <SheetDescription>Registre um atendimento técnico e atribua a um responsável.</SheetDescription>
+        </SheetHeader>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2 space-y-1.5">
+            <Label>Título *</Label>
+            <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Resumo do problema" />
+          </div>
+          <div className="sm:col-span-2 space-y-1.5">
+            <Label>Descrição</Label>
+            <Textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Detalhes técnicos…" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Prioridade</Label>
+            <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v as Ticket["priority"] })}>
+              <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Baixa</SelectItem>
+                <SelectItem value="medium">Média</SelectItem>
+                <SelectItem value="high">Alta</SelectItem>
+                <SelectItem value="critical">Crítica</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Cliente</Label>
+            <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
+              <SelectTrigger className="h-10"><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
+              <SelectContent>
+                {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.company}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Contato</Label>
+            <Input value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Telefone</Label>
+            <Input value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Equipamento</Label>
+            <Input value={form.equipment} onChange={(e) => setForm({ ...form, equipment: e.target.value })} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Atribuir a</Label>
+            <Select value={form.assigned_to} onValueChange={(v) => setForm({ ...form, assigned_to: v })}>
+              <SelectTrigger className="h-10"><SelectValue placeholder="Técnico" /></SelectTrigger>
+              <SelectContent>
+                {techs.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.full_name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="sm:col-span-2 space-y-1.5">
+            <Label>Endereço de atendimento</Label>
+            <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+          </div>
         </div>
-        <div className="sm:col-span-2 space-y-1.5">
-          <Label>Descrição</Label>
-          <Textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Detalhes técnicos, comportamento esperado, etc." />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Prioridade</Label>
-          <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v as Ticket["priority"] })}>
-            <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">Baixa</SelectItem>
-              <SelectItem value="medium">Média</SelectItem>
-              <SelectItem value="high">Alta</SelectItem>
-              <SelectItem value="critical">Crítica</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Cliente</Label>
-          <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
-            <SelectTrigger className="h-10"><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
-            <SelectContent>
-              {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.company}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Contato</Label>
-          <Input value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Telefone</Label>
-          <Input value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Equipamento</Label>
-          <Input value={form.equipment} onChange={(e) => setForm({ ...form, equipment: e.target.value })} />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Atribuir a</Label>
-          <Select value={form.assigned_to} onValueChange={(v) => setForm({ ...form, assigned_to: v })}>
-            <SelectTrigger className="h-10"><SelectValue placeholder="Técnico" /></SelectTrigger>
-            <SelectContent>
-              {techs.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.full_name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="sm:col-span-2 space-y-1.5">
-          <Label>Endereço de atendimento</Label>
-          <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-        </div>
-      </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>Cancelar</Button>
-        <Button onClick={() => mut.mutate()} disabled={!form.title || mut.isPending}>
-          {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar chamado"}
-        </Button>
-      </DialogFooter>
-    </DialogContent>
+
+        <SheetFooter className="mt-6 flex-row gap-2 sm:justify-end">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={() => mut.mutate()} disabled={!form.title || mut.isPending}>
+            {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Criar chamado"}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
