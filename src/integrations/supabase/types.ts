@@ -564,7 +564,15 @@ export type Database = {
           rating?: number
           ticket_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ticket_ratings_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: true
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ticket_reports: {
         Row: {
@@ -574,10 +582,12 @@ export type Database = {
           id: string
           internal_notes: string | null
           needs_return: boolean | null
+          parts_used: Json
           procedures: string | null
           recommendations: string | null
           result: string | null
           root_cause: string | null
+          routine_performed: string | null
           solution: string | null
           ticket_id: string
           updated_at: string
@@ -589,10 +599,12 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           needs_return?: boolean | null
+          parts_used?: Json
           procedures?: string | null
           recommendations?: string | null
           result?: string | null
           root_cause?: string | null
+          routine_performed?: string | null
           solution?: string | null
           ticket_id: string
           updated_at?: string
@@ -604,10 +616,12 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           needs_return?: boolean | null
+          parts_used?: Json
           procedures?: string | null
           recommendations?: string | null
           result?: string | null
           root_cause?: string | null
+          routine_performed?: string | null
           solution?: string | null
           ticket_id?: string
           updated_at?: string
@@ -730,6 +744,10 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      notification_enabled: {
+        Args: { _type: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "supervisor" | "senior_tech" | "tech"
