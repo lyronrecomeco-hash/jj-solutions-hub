@@ -53,14 +53,19 @@ function ReportsPage() {
     queryKey: ["report-data", from, to, techId, status, clientId],
     queryFn: async () => {
       let q = supabase.from("tickets")
-        .select("ticket_number, title, status, priority, created_at, closed_at, contact_name, clients(company), profiles:assigned_to(full_name)")
+        .select("ticket_number, title, status, priority, created_at, closed_at, contact_name, assigned_to, clients(company)")
         .gte("created_at", from).lte("created_at", to + "T23:59:59")
         .order("created_at", { ascending: false });
       if (techId !== "all") q = q.eq("assigned_to", techId);
       if (status !== "all") q = q.eq("status", status as any);
       if (clientId !== "all") q = q.eq("client_id", clientId);
       const { data } = await q;
-      return (data ?? []) as any[];
+      const rows = (data ?? []) as any[];
+      const ids = [...new Set(rows.map((r) => r.assigned_to).filter(Boolean))];
+      if (ids.length === 0) return rows;
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+      const byId = new Map((profiles ?? []).map((p: any) => [p.id, { full_name: p.full_name }]));
+      return rows.map((r) => ({ ...r, profiles: r.assigned_to ? byId.get(r.assigned_to) ?? null : null }));
     },
   });
 
