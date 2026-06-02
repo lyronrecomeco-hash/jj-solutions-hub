@@ -109,7 +109,7 @@ function PendingPage() {
         </div>
       </div>
 
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:max-w-3xl">
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Pendentes" value={counts.pending} tone="warning" />
         <Stat label="Em espera" value={counts.on_hold} tone="muted" />
         <Stat label="Aprovados" value={counts.approved} tone="success" />
