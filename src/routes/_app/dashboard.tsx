@@ -115,7 +115,7 @@ function DashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <div>
               <CardTitle className="text-base">Abertos vs Resolvidos</CardTitle>
-              <p className="text-xs text-muted-foreground">Últimos 14 dias</p>
+              <p className="text-xs text-muted-foreground">{rangeLabel}</p>
             </div>
             <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
           </CardHeader>
