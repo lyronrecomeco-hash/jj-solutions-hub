@@ -55,6 +55,8 @@ function MessagesPage() {
     },
     onError: (e: any) => toast.error("Falha ao excluir", { description: e?.message }),
   });
+
+  const { data: techs = [], isLoading } = useQuery({
     queryKey: ["msg-techs"],
     queryFn: async () => {
       const { data } = await supabase.from("profiles")
