@@ -87,7 +87,21 @@ function MessagesPage() {
   );
 
   if (!isStaff) {
-    // Técnico vê apenas o próprio mural em tela cheia.
+    // Técnico vê apenas o próprio mural. No mobile, ocupa a tela como conversa nativa.
+    if (isMobile) {
+      return (
+        <div className="flex h-[calc(100svh-3.5rem)] flex-col bg-background">
+          <div className="flex items-center gap-3 border-b border-border px-3 py-3">
+            <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary"><MessageSquare className="h-4 w-4" /></div>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold">Mensagens</div>
+              <div className="truncate text-[11px] text-muted-foreground">Conversa direta com a supervisão.</div>
+            </div>
+          </div>
+          <ChatPanel tech={chatFor} mobile />
+        </div>
+      );
+    }
     return (
       <div className="w-full px-3 py-4 sm:px-6 lg:px-8 lg:py-6">
         <div className="mb-4 flex items-center gap-3">
@@ -334,7 +348,7 @@ function ChatPanel({ tech, embedded, mobile }: { tech: Tech | null; embedded?: b
             )}
             <Textarea
               value={text} onChange={(e) => setText(e.target.value)}
-              placeholder="Escreva uma mensagem ou anexe uma evidência…"
+              placeholder="Escreva algo."
               rows={1} className="min-h-[44px] resize-none bg-surface-muted"
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if ((text || file) && !send.isPending) send.mutate(); }}}
             />
