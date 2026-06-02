@@ -27,9 +27,9 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const PRIORITY_STYLE: Record<string, string> = {
-  critical: "bg-destructive/10 text-destructive border-destructive/20",
-  high: "bg-warning/10 text-warning-foreground border-warning/30",
-  medium: "bg-info/10 text-info border-info/20",
+  critical: "bg-destructive/15 text-destructive border-destructive/30",
+  high: "bg-warning/20 text-warning-foreground border-warning/40 dark:bg-warning/15 dark:text-warning",
+  medium: "bg-info/15 text-info border-info/30",
   low: "bg-muted text-muted-foreground border-border",
 };
 
