@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Plus, Search, Ticket, AlertTriangle, Clock, CheckCircle2, Filter, Loader2, ArrowRight,
-  Image as ImageIcon, LayoutList, KanbanSquare, MoreHorizontal, UserPlus, ArrowRightCircle,
+  Image as ImageIcon, LayoutList, KanbanSquare, UserPlus, ArrowRightCircle,
   CheckCircle, XCircle, ExternalLink, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -466,10 +466,10 @@ function KanbanCard({ t, dragging }: { t: Ticket; dragging?: boolean }) {
               className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-md text-muted-foreground opacity-0 transition hover:bg-surface-muted hover:text-foreground group-hover:opacity-100 data-[state=open]:opacity-100"
               aria-label="Ações"
             >
-              <MoreHorizontal className="h-3.5 w-3.5" />
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", menuOpen && "rotate-180")} />
             </button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-56 p-1">
+          <PopoverContent align="end" sideOffset={8} className="w-60 rounded-lg border-border bg-popover p-1.5 shadow-floating">
             <Link
               to="/chamados/$id"
               params={{ id: t.id }}
