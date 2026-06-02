@@ -42,7 +42,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let currentUid: string | null = null;
     const { data: sub } = supabase.auth.onAuthStateChange((evt, s) => {
       const nextUid = s?.user?.id ?? null;
-      if (evt === "TOKEN_REFRESHED" && nextUid === currentUid) {
+      // Ignore token refresh and initial session re-emits when user did not change.
+      if ((evt === "TOKEN_REFRESHED" || evt === "INITIAL_SESSION") && nextUid === currentUid) {
         return;
       }
       setSession(s);
@@ -53,8 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRoles([]);
         return;
       }
-      // Only reload profile when the user actually changes (SIGNED_IN / USER_UPDATED).
-      // Ignore TOKEN_REFRESHED and INITIAL_SESSION to avoid flicker between routes.
       if (nextUid !== currentUid || evt === "USER_UPDATED") {
         currentUid = nextUid;
         setTimeout(() => loadProfile(s.user.id), 0);
