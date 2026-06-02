@@ -27,7 +27,6 @@ const techManagementItems: NavItem[] = [
   { title: "Equipe Técnica", url: "/tecnicos", icon: Users },
   { title: "Cadastros Pendentes", url: "/cadastros-pendentes", icon: ClipboardList },
   { title: "Atribuição", url: "/atribuicao", icon: UserCog },
-  { title: "Monitoramento", url: "/monitoramento", icon: MapPin },
 ];
 
 const customerItems: NavItem[] = [
