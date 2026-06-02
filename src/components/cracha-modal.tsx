@@ -4,10 +4,12 @@ import { Printer, RotateCw, ShieldCheck, Loader2 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CrachaCard, type Tech } from "@/components/cracha-card";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   tech: Tech | null;
@@ -21,6 +23,19 @@ export function CrachaModal({ tech, open, onOpenChange }: Props) {
   const [downloading, setDownloading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const backRef = useRef<HTMLDivElement>(null);
+
+  const { data: org } = useQuery({
+    queryKey: ["org-settings-cracha"],
+    enabled: open,
+    queryFn: async () => {
+      const { data } = await supabase.from("app_settings").select("value").eq("key", "organization").maybeSingle();
+      return (data?.value ?? {}) as { name?: string; cnpj?: string; contact_email?: string };
+    },
+    staleTime: 10_000,
+  });
+  const contactEmail = org?.contact_email || "suporte@jjinformatica.app";
+  const orgCnpj = org?.cnpj || "00.000.000/0001-00";
+  const orgName = org?.name || "JJ Informática Soluções em Tecnologia";
 
   async function printPdf() {
     if (!tech || !cardRef.current || !backRef.current) return;
@@ -188,7 +203,7 @@ export function CrachaModal({ tech, open, onOpenChange }: Props) {
                   <ul className="space-y-2 text-[10.5px] leading-relaxed text-slate-600">
                     <li>1. Este crachá é pessoal, intransferível e deve ser portado durante todo o atendimento.</li>
                     <li>2. O profissional deve identificar-se ao cliente apresentando este crachá antes de iniciar qualquer serviço.</li>
-                    <li>3. Em caso de perda, comunique imediatamente o suporte: <b>suporte@jjinformatica.app</b></li>
+                    <li>3. Em caso de perda, comunique imediatamente o suporte: <b>{contactEmail}</b></li>
                     <li>4. O QR Code direciona à página oficial de validação da identidade.</li>
                   </ul>
                   <div className="absolute inset-x-5 bottom-5">
@@ -196,7 +211,7 @@ export function CrachaModal({ tech, open, onOpenChange }: Props) {
                       Documento válido — emitido eletronicamente
                     </div>
                     <div className="mt-2 text-center text-[9px] text-slate-400">
-                      JJ Informática Soluções em Tecnologia · CNPJ 00.000.000/0001-00
+                      {orgName} · CNPJ {orgCnpj}
                     </div>
                   </div>
                 </div>

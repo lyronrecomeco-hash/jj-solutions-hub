@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Plus, Search, IdCard, Pencil, Trash2, Eye, BarChart3, Mail, Phone, Loader2, MapPin } from "lucide-react";
@@ -22,6 +22,8 @@ import { TechnicianViewSheet } from "@/components/technician-view-sheet";
 import { TrackingModal } from "@/components/tracking-modal";
 import { deleteTechnician, updateTechnician } from "@/lib/api/technicians.functions";
 import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/tecnicos")({ component: TechniciansPage });
 
@@ -29,6 +31,7 @@ type Row = {
   id: string; full_name: string; email: string; phone: string | null;
   specialty: string | null; job_title: string | null; registration_code: string | null;
   employment_type: "field" | "clt" | "pj" | "internal"; photo_url: string | null; status: string;
+  last_seen_at: string | null;
 };
 
 const employmentLabel: Record<Row["employment_type"], { label: string; cls: string }> = {
@@ -40,6 +43,7 @@ const employmentLabel: Record<Row["employment_type"], { label: string; cls: stri
 
 function TechniciansPage() {
   const { isAdmin } = useAuth();
+  const { isSuperAdmin } = usePermissions();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [q, setQ] = useState("");
@@ -56,11 +60,23 @@ function TechniciansPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, full_name, email, phone, specialty, job_title, registration_code, employment_type, photo_url, status")
+        .select("id, full_name, email, phone, specialty, job_title, registration_code, employment_type, photo_url, status, last_seen_at")
         .order("full_name");
       return (data ?? []) as Row[];
     },
+    refetchInterval: 30_000,
   });
+
+  // Realtime presence updates
+  useEffect(() => {
+    const ch = supabase
+      .channel("techs-presence")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles" }, () => {
+        qc.invalidateQueries({ queryKey: ["technicians"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
 
   const delFn = useServerFn(deleteTechnician);
   const delMut = useMutation({
@@ -82,7 +98,11 @@ function TechniciansPage() {
           <p className="text-sm text-muted-foreground">Gerencie técnicos, vínculos, crachás e desempenho.</p>
         </div>
         {isAdmin && (
-          <Button onClick={() => setAddOpen(true)}>
+          <Button
+            onClick={() => isSuperAdmin && setAddOpen(true)}
+            className={cn(!isSuperAdmin && "pointer-events-none opacity-40")}
+            title={isSuperAdmin ? "Adicionar técnico" : "Apenas o superadministrador pode executar esta ação"}
+          >
             <Plus className="h-4 w-4" /> Adicionar técnico
           </Button>
         )}
@@ -134,10 +154,17 @@ function TechniciansPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="inline-flex items-center gap-1.5 text-xs">
-                      <span className={`h-1.5 w-1.5 rounded-full ${r.status === "online" ? "bg-success" : r.status === "busy" ? "bg-warning" : "bg-muted-foreground/50"}`} />
-                      {r.status}
-                    </span>
+                    {(() => {
+                      const lastSeen = r.last_seen_at ? new Date(r.last_seen_at).getTime() : 0;
+                      const fresh = Date.now() - lastSeen < 90_000; // 90s
+                      const isOnline = r.status === "online" && fresh;
+                      return (
+                        <span className="inline-flex items-center gap-1.5 text-xs">
+                          <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? "bg-success" : "bg-muted-foreground/50"}`} />
+                          {isOnline ? "online" : "offline"}
+                        </span>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-0.5">
@@ -147,8 +174,22 @@ function TechniciansPage() {
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Desempenho" onClick={() => setStatsFor(r)}><BarChart3 className="h-4 w-4" /></Button>
                       {isAdmin && (
                         <>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar" onClick={() => setEditFor(r)}><Pencil className="h-4 w-4" /></Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" title="Excluir" onClick={() => setDeleteFor(r)}><Trash2 className="h-4 w-4" /></Button>
+                          <Button
+                            size="icon" variant="ghost"
+                            className={cn("h-8 w-8", !isSuperAdmin && "pointer-events-none opacity-40")}
+                            title={isSuperAdmin ? "Editar" : "Apenas o superadministrador pode executar esta ação"}
+                            onClick={() => isSuperAdmin && setEditFor(r)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon" variant="ghost"
+                            className={cn("h-8 w-8 text-destructive hover:text-destructive", !isSuperAdmin && "pointer-events-none opacity-40")}
+                            title={isSuperAdmin ? "Excluir" : "Apenas o superadministrador pode executar esta ação"}
+                            onClick={() => isSuperAdmin && setDeleteFor(r)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </>
                       )}
                     </div>

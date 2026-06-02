@@ -1,13 +1,14 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Loader2, ShieldCheck, Activity, Headphones, Zap } from "lucide-react";
+import { Eye, EyeOff, Loader2, ShieldCheck, Activity, Headphones, Zap, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { JJLogo } from "@/components/jj-logo";
 import { LoginAnimation } from "@/components/login-animation";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,6 +23,7 @@ function LoginPage() {
   const [show, setShow] = useState(false);
   const [remember, setRemember] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user) navigate({ to: "/dashboard", replace: true });
@@ -98,7 +100,7 @@ function LoginPage() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Senha</Label>
-                  <button type="button" className="text-xs font-medium text-primary hover:underline">Esqueci minha senha</button>
+                  <button type="button" onClick={() => setForgotOpen(true)} className="text-xs font-medium text-primary hover:underline">Esqueci minha senha</button>
                 </div>
                 <div className="relative">
                   <Input id="password" type={show ? "text" : "password"} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-11 pr-11 border-border" />
@@ -132,6 +134,24 @@ function LoginPage() {
           </div>
         </motion.div>
       </main>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="mb-2 grid h-11 w-11 place-items-center rounded-full bg-primary/10 text-primary">
+              <KeyRound className="h-5 w-5" />
+            </div>
+            <DialogTitle>Recuperar acesso</DialogTitle>
+            <DialogDescription className="leading-relaxed">
+              Para recuperar seu acesso, entre em contato com o administrador deste painel.
+              Por motivos de segurança, a redefinição de senha é feita exclusivamente pela administração.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setForgotOpen(false)} className="w-full">Entendi</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
