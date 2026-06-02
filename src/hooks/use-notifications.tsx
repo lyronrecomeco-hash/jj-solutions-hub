@@ -79,5 +79,15 @@ export function useNotifications() {
       .eq("user_id", user.id).is("read_at", null);
   }, [user]);
 
-  return { items, unreadCount, loading, markRead, markAllRead, refresh };
+  const clearAll = useCallback(async () => {
+    if (!user) return;
+    const previous = items;
+    setItems([]);
+    const { error } = await (supabase.from("notifications") as any)
+      .delete()
+      .eq("user_id", user.id);
+    if (error) setItems(previous);
+  }, [items, user]);
+
+  return { items, unreadCount, loading, markRead, markAllRead, clearAll, refresh };
 }
