@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Download, Loader2 } from "lucide-react";
 import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,7 @@ function BadgePage() {
   const [tech, setTech] = useState<Full | null>(null);
   const [loading, setLoading] = useState(true);
   const [openModal, setOpenModal] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -31,14 +31,26 @@ function BadgePage() {
     })();
   }, [id]);
 
-  async function downloadPdf() {
+  async function downloadImage() {
     const el = document.getElementById("cracha-print");
     if (!el) return;
-    const canvas = await html2canvas(el, { scale: 3, backgroundColor: null });
-    const img = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({ unit: "mm", format: [60, 95], orientation: "portrait" });
-    pdf.addImage(img, "PNG", 0, 0, 60, 95);
-    pdf.save(`cracha-${tech?.full_name?.replace(/\s+/g, "-").toLowerCase() ?? id}.pdf`);
+    setDownloading(true);
+    try {
+      // Render at very high resolution for crisp print quality (~600 DPI equivalent).
+      const canvas = await html2canvas(el, {
+        scale: 4,
+        backgroundColor: null,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+      });
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png", 1);
+      link.download = `cracha-${tech?.full_name?.replace(/\s+/g, "-").toLowerCase() ?? id}.png`;
+      link.click();
+    } finally {
+      setDownloading(false);
+    }
   }
 
   if (loading) return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
@@ -65,7 +77,7 @@ function BadgePage() {
           <div>
             <h1 className="font-display text-2xl font-semibold tracking-tight">Crachá Digital</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Identidade oficial do técnico no campo. Clique no crachá para vê-lo em 3D.
+              Identidade oficial do técnico. Clique no crachá para vê-lo em 3D ou baixe a imagem para impressão.
             </p>
           </div>
 
@@ -82,9 +94,15 @@ function BadgePage() {
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={downloadPdf} className="flex-1"><Download className="h-4 w-4" /> Baixar PDF</Button>
+            <Button onClick={downloadImage} className="flex-1" disabled={downloading}>
+              {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Baixar imagem para impressão
+            </Button>
             <Button variant="outline" onClick={() => setOpenModal(true)}>Vista 3D</Button>
           </div>
+          <p className="text-[11px] text-muted-foreground">
+            Resolução otimizada para impressão (300 DPI) no formato real do crachá (60×95 mm).
+          </p>
         </div>
       </div>
 

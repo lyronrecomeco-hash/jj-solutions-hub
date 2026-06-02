@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Download, RotateCw, ShieldCheck } from "lucide-react";
 import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -21,11 +20,13 @@ export function CrachaModal({ tech, open, onOpenChange }: Props) {
 
   async function download() {
     if (!cardRef.current) return;
-    const canvas = await html2canvas(cardRef.current, { scale: 3, backgroundColor: null });
-    const img = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({ unit: "mm", format: [60, 95], orientation: "portrait" });
-    pdf.addImage(img, "PNG", 0, 0, 60, 95);
-    pdf.save(`cracha-${tech?.full_name?.replace(/\s+/g, "-").toLowerCase() ?? "tecnico"}.pdf`);
+    const canvas = await html2canvas(cardRef.current, {
+      scale: 4, backgroundColor: null, useCORS: true, logging: false,
+    });
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png", 1);
+    link.download = `cracha-${tech?.full_name?.replace(/\s+/g, "-").toLowerCase() ?? "tecnico"}.png`;
+    link.click();
   }
 
   if (!tech) return null;
@@ -106,7 +107,7 @@ export function CrachaModal({ tech, open, onOpenChange }: Props) {
                 {auto ? "Pausar rotação" : "Rotação automática"}
               </Button>
               <Button size="sm" onClick={download}>
-                <Download className="h-3.5 w-3.5" /> Baixar PDF
+                <Download className="h-3.5 w-3.5" /> Baixar imagem
               </Button>
             </div>
           </div>
