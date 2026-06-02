@@ -42,6 +42,7 @@ const communicationItems: NavItem[] = [
 ];
 
 const systemItems: NavItem[] = [
+  { title: "Administradores", url: "/administradores", icon: ShieldCheck },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
   { title: "Logs", url: "/logs", icon: ScrollText },
 ];
