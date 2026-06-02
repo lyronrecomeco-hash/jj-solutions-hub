@@ -143,6 +143,7 @@ function TechniciansPage() {
                     <div className="flex items-center justify-end gap-0.5">
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Ver perfil" onClick={() => setViewFor(r)}><Eye className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Ver crachá" onClick={() => setBadgeFor(r)}><IdCard className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Monitorar localização" onClick={() => setTrackFor(r)}><MapPin className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Desempenho" onClick={() => setStatsFor(r)}><BarChart3 className="h-4 w-4" /></Button>
                       {isAdmin && (
                         <>
