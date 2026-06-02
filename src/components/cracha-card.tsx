@@ -87,16 +87,6 @@ export const CrachaCard = forwardRef<HTMLDivElement, Props>(({ tech, className }
             </div>
           )}
         </div>
-        {/* Online dot indicator */}
-        <span
-          className="absolute"
-          style={{
-            bottom: -2, left: "calc(50% + 28px)",
-            width: 14, height: 14, borderRadius: 9999,
-            background: "#22c55e", border: "3px solid #ffffff",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-          }}
-        />
       </div>
 
       {/* Body */}
