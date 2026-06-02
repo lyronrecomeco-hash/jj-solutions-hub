@@ -460,19 +460,6 @@ function KanbanCard({ t, dragging }: { t: Ticket; dragging?: boolean }) {
   );
 }
 
-function MenuItem({ icon: Icon, label, to, onClose }: { icon: any; label: string; to: string; onClose: () => void }) {
-  return (
-    <Link
-      to={to}
-      onClick={onClose}
-      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-surface-muted"
-    >
-      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-      {label}
-    </Link>
-  );
-}
-
 function MenuButton({ icon: Icon, label, onClick, disabled, tone }: { icon: any; label: string; onClick: () => void; disabled?: boolean; tone?: "danger" }) {
   return (
     <button
