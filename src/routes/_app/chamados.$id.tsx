@@ -178,6 +178,7 @@ function TicketDetailPage() {
             <TabsTrigger value="details">Detalhes</TabsTrigger>
             <TabsTrigger value="evidence">Evidências</TabsTrigger>
             <TabsTrigger value="report">Relatório técnico</TabsTrigger>
+            {isClosed && <TabsTrigger value="rating">Avaliação</TabsTrigger>}
             <TabsTrigger value="history">Histórico</TabsTrigger>
           </TabsList>
 
