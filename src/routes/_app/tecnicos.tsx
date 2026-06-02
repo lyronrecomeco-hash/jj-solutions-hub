@@ -98,7 +98,11 @@ function TechniciansPage() {
           <p className="text-sm text-muted-foreground">Gerencie técnicos, vínculos, crachás e desempenho.</p>
         </div>
         {isAdmin && (
-          <Button onClick={() => setAddOpen(true)}>
+          <Button
+            onClick={() => isSuperAdmin && setAddOpen(true)}
+            className={cn(!isSuperAdmin && "pointer-events-none opacity-40")}
+            title={isSuperAdmin ? "Adicionar técnico" : "Apenas o superadministrador pode executar esta ação"}
+          >
             <Plus className="h-4 w-4" /> Adicionar técnico
           </Button>
         )}
