@@ -242,28 +242,48 @@ function EditDialog({ row, onClose, onSaved }: { row: Row | null; onClose: () =>
 
 function StatsDialog({ row, onClose }: { row: Row | null; onClose: () => void }) {
   const open = !!row;
-  const data = [
-    { dia: "Seg", resolvidos: 4 }, { dia: "Ter", resolvidos: 7 }, { dia: "Qua", resolvidos: 3 },
-    { dia: "Qui", resolvidos: 6 }, { dia: "Sex", resolvidos: 9 }, { dia: "Sáb", resolvidos: 2 },
-  ];
+  const { data: stats } = useQuery({
+    queryKey: ["tech-stats", row?.id],
+    enabled: !!row,
+    queryFn: async () => {
+      const since = new Date(Date.now() - 7 * 86400000).toISOString();
+      const { data } = await supabase
+        .from("tickets")
+        .select("status, created_at")
+        .eq("assigned_to", row!.id)
+        .gte("created_at", since);
+      const rows = data ?? [];
+      const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+      const buckets: Record<string, number> = Object.fromEntries(days.map((d) => [d, 0]));
+      rows.filter((r: any) => r.status === "resolved").forEach((r: any) => {
+        const d = new Date(r.created_at);
+        buckets[days[d.getDay()]] = (buckets[days[d.getDay()]] ?? 0) + 1;
+      });
+      return {
+        chart: days.map((d) => ({ dia: d, resolvidos: buckets[d] })),
+        total: rows.length,
+        resolvidos: rows.filter((r: any) => r.status === "resolved").length,
+      };
+    },
+  });
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Desempenho · {row?.full_name}</DialogTitle>
-          <DialogDescription>Resumo semanal de chamados concluídos.</DialogDescription>
+          <DialogDescription>Resumo dos últimos 7 dias.</DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-3 gap-3 py-2">
-          <Stat label="Chamados (semana)" value="31" />
-          <Stat label="Tempo médio" value="2h 14m" />
-          <Stat label="Satisfação" value="4.8 / 5" />
+          <Stat label="Chamados (7 dias)" value={String(stats?.total ?? 0)} />
+          <Stat label="Resolvidos" value={String(stats?.resolvidos ?? 0)} />
+          <Stat label="Taxa" value={stats && stats.total ? `${Math.round((stats.resolvidos / stats.total) * 100)}%` : "—"} />
         </div>
         <div className="rounded-xl border border-border bg-surface p-3">
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={data}>
+            <BarChart data={stats?.chart ?? []}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
               <XAxis dataKey="dia" stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
               <Tooltip cursor={{ fill: "var(--color-accent)", opacity: 0.35, radius: 6 }}
                 contentStyle={{ background: "var(--color-popover)", color: "var(--color-popover-foreground)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }} />
               <Bar dataKey="resolvidos" fill="var(--color-chart-1)" radius={[6, 6, 0, 0]} maxBarSize={36} />
