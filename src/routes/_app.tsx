@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { useAuth } from "@/hooks/use-auth";
 import { useGeolocationTracker } from "@/hooks/use-geolocation-tracker";
+import { useAntiTamper } from "@/hooks/use-anti-tamper";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ function AppLayout() {
   const { user, loading, profile } = useAuth();
   const navigate = useNavigate();
   useGeolocationTracker();
+  useAntiTamper(true);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login", replace: true });

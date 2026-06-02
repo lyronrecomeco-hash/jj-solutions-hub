@@ -8,6 +8,7 @@ import "leaflet/dist/leaflet.css";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { useTheme } from "@/hooks/use-theme";
 
 export const Route = createFileRoute("/_app/monitoramento")({ component: MonitoringPage });
 
@@ -64,6 +65,7 @@ function relTime(iso: string) {
 }
 
 function MonitoringPage() {
+  const { theme } = useTheme();
   const [locs, setLocs] = useState<Loc[]>([]);
   const [techs, setTechs] = useState<Tech[]>([]);
   const [loading, setLoading] = useState(true);
@@ -198,10 +200,17 @@ function MonitoringPage() {
             {loading ? (
               <div className="grid h-full place-items-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
             ) : (
-              <MapContainer center={center} zoom={selectedLoc ? 14 : 4} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
+              <MapContainer center={center} zoom={selectedLoc ? 14 : 4} style={{ height: "100%", width: "100%" }} scrollWheelZoom attributionControl={false}>
                 <TileLayer
-                  url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                  attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap'
+                  url={theme === "dark"
+                    ? "https://{s}.basemaps.cartocdn.com/rastertiles/dark_nolabels/{z}/{x}/{y}{r}.png"
+                    : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png"}
+                  subdomains="abcd" maxZoom={20} detectRetina
+                />
+                <TileLayer
+                  url={theme === "dark"
+                    ? "https://{s}.basemaps.cartocdn.com/rastertiles/dark_only_labels/{z}/{x}/{y}{r}.png"
+                    : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"}
                   subdomains="abcd" maxZoom={20} detectRetina
                 />
                 <FlyTo pos={flyPos} />
