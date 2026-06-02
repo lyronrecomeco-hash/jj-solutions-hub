@@ -1,9 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Search, Paperclip, Send, Image as ImageIcon, Video, Loader2,
-  MessageSquare, Check, CheckCheck, Eye, ArrowLeft,
+  MessageSquare, Check, CheckCheck, Eye, ArrowLeft, Plus, Ticket as TicketIcon,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,7 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -22,6 +24,7 @@ export const Route = createFileRoute("/_app/mensagens")({ component: MessagesPag
 type Tech = { id: string; full_name: string; photo_url: string | null; specialty: string | null };
 type Msg = {
   id: string; technician_id: string; author_id: string;
+  ticket_id: string | null;
   body: string | null; media_url: string | null; media_type: string | null;
   created_at: string; read_at: string | null;
 };
@@ -32,6 +35,7 @@ function MessagesPage() {
   const isMobile = useIsMobile();
   const [q, setQ] = useState("");
   const [chatFor, setChatFor] = useState<Tech | null>(null);
+  const [chatTicketId, setChatTicketId] = useState<string | null>(null);
 
   const { data: techs = [], isLoading } = useQuery({
     queryKey: ["msg-techs"],
@@ -42,20 +46,12 @@ function MessagesPage() {
     },
   });
 
-  // Para staff: mostra lista de todos os técnicos. Para técnico: abre direto seu mural.
-  useEffect(() => {
-    if (!isStaff && user && !chatFor && techs.length) {
-      const me = techs.find((t) => t.id === user.id);
-      if (me) setChatFor(me);
-    }
-  }, [isStaff, user, techs, chatFor]);
-
   const { data: summaries = {} } = useQuery({
     queryKey: ["msg-summaries", techs.map((t) => t.id).join(","), user?.id],
-    enabled: techs.length > 0 && !!user,
+    enabled: techs.length > 0 && !!user && isStaff,
     queryFn: async () => {
       const { data } = await (supabase.from("technician_messages") as any)
-        .select("id, technician_id, author_id, body, media_url, media_type, created_at, read_at")
+        .select("id, technician_id, author_id, ticket_id, body, media_url, media_type, created_at, read_at")
         .order("created_at", { ascending: false })
         .limit(500);
       const all = (data ?? []) as Msg[];
@@ -71,13 +67,15 @@ function MessagesPage() {
     },
   });
 
-  // Realtime para atualizar a lista
   const qc = useQueryClient();
   useEffect(() => {
     const ch = supabase
       .channel("msg-list")
       .on("postgres_changes", { event: "*", schema: "public", table: "technician_messages" },
-        () => qc.invalidateQueries({ queryKey: ["msg-summaries"] }))
+        () => {
+          qc.invalidateQueries({ queryKey: ["msg-summaries"] });
+          qc.invalidateQueries({ queryKey: ["tech-atend-list"] });
+        })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [qc]);
@@ -86,38 +84,40 @@ function MessagesPage() {
     !q || [t.full_name, t.specialty].filter(Boolean).join(" ").toLowerCase().includes(q.toLowerCase()),
   );
 
-  if (!isStaff) {
-    // Técnico vê apenas o próprio mural. No mobile, ocupa a tela como conversa nativa.
-    if (isMobile) {
+  // ===== TECHNICIAN view: list of atendimentos, no auto-open chat =====
+  if (!isStaff && user) {
+    const me = techs.find((t) => t.id === user.id) ?? null;
+
+    if (chatFor && isMobile) {
       return (
         <div className="flex h-[calc(100svh-3.5rem)] flex-col bg-background">
           <div className="flex items-center gap-3 border-b border-border px-3 py-3">
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => { setChatFor(null); setChatTicketId(null); }}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
             <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary"><MessageSquare className="h-4 w-4" /></div>
             <div className="min-w-0">
-              <div className="truncate text-sm font-semibold">Mensagens</div>
-              <div className="truncate text-[11px] text-muted-foreground">Conversa direta com a supervisão.</div>
+              <div className="truncate text-sm font-semibold">{chatTicketId ? "Atendimento" : "Conversa geral"}</div>
+              <div className="truncate text-[11px] text-muted-foreground">Supervisão</div>
             </div>
           </div>
-          <ChatPanel tech={chatFor} mobile />
+          <ChatPanel tech={chatFor} ticketId={chatTicketId} mobile />
         </div>
       );
     }
+
     return (
-      <div className="w-full px-3 py-4 sm:px-6 lg:px-8 lg:py-6">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary"><MessageSquare className="h-5 w-5" /></div>
-          <div>
-            <h1 className="font-display text-2xl font-semibold tracking-tight">Mensagens</h1>
-            <p className="text-sm text-muted-foreground">Conversa direta com a supervisão.</p>
-          </div>
-        </div>
-        <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-soft">
-          <ChatPanel tech={chatFor} embedded />
-        </div>
-      </div>
+      <TechMyMessages
+        me={me}
+        onOpen={(ticketId) => { setChatFor(me); setChatTicketId(ticketId); }}
+        chatFor={chatFor}
+        chatTicketId={chatTicketId}
+        onClose={() => { setChatFor(null); setChatTicketId(null); }}
+      />
     );
   }
 
+  // ===== STAFF view (unchanged base) =====
   if (isMobile && chatFor) {
     return (
       <div className="flex h-[calc(100svh-3.5rem)] flex-col bg-background">
@@ -134,7 +134,7 @@ function MessagesPage() {
             <div className="truncate text-xs text-muted-foreground">{chatFor.specialty ?? "Técnico"}</div>
           </div>
         </div>
-        <ChatPanel tech={chatFor} mobile />
+        <ChatPanel tech={chatFor} ticketId={null} mobile />
       </div>
     );
   }
@@ -174,7 +174,7 @@ function MessagesPage() {
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">Nenhum técnico encontrado.</td></tr>
               ) : filtered.map((t) => {
-                const s = summaries[t.id];
+                const s = (summaries as Record<string, Summary>)[t.id];
                 const initials = t.full_name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
                 const lastText = s?.last
                   ? (s.last.body ?? (s.last.media_type === "video" ? "📹 Vídeo" : "🖼️ Imagem"))
@@ -215,7 +215,7 @@ function MessagesPage() {
         </div>
       </div>
 
-      <Dialog open={!!chatFor} onOpenChange={(o) => !o && setChatFor(null)}>
+      <Dialog open={!!chatFor && !isMobile} onOpenChange={(o) => !o && setChatFor(null)}>
         <DialogContent className="max-w-3xl p-0 overflow-hidden">
           <DialogHeader className="border-b border-border px-5 py-3">
             <DialogTitle className="flex items-center gap-2 text-base">
@@ -223,14 +223,215 @@ function MessagesPage() {
             </DialogTitle>
             <DialogDescription className="text-xs">{chatFor?.specialty ?? "Técnico"}</DialogDescription>
           </DialogHeader>
-          <ChatPanel tech={chatFor} />
+          <ChatPanel tech={chatFor} ticketId={null} />
         </DialogContent>
       </Dialog>
     </div>
   );
 }
 
-function ChatPanel({ tech, embedded, mobile }: { tech: Tech | null; embedded?: boolean; mobile?: boolean }) {
+// =========================================================
+// Technician — list of atendimentos (grouped by ticket_id) +
+// "Abrir atendimento" button. Clicking opens the chat.
+// =========================================================
+function TechMyMessages({
+  me, onOpen, chatFor, chatTicketId, onClose,
+}: {
+  me: Tech | null;
+  onOpen: (ticketId: string | null) => void;
+  chatFor: Tech | null;
+  chatTicketId: string | null;
+  onClose: () => void;
+}) {
+  const { user } = useAuth();
+  const isMobile = useIsMobile();
+  const [openNew, setOpenNew] = useState(false);
+
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["tech-atend-list", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await (supabase.from("technician_messages") as any)
+        .select("id, technician_id, author_id, ticket_id, body, media_url, media_type, created_at, read_at")
+        .eq("technician_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      return (data ?? []) as Msg[];
+    },
+  });
+
+  // Group by ticket_id (null = "Conversa geral")
+  const groups = useMemo(() => {
+    const map = new Map<string, { ticketId: string | null; last: Msg; unread: number }>();
+    for (const m of rows) {
+      const key = m.ticket_id ?? "__general__";
+      const cur = map.get(key);
+      const isUnread = !m.read_at && m.author_id !== user?.id;
+      if (!cur) {
+        map.set(key, { ticketId: m.ticket_id, last: m, unread: isUnread ? 1 : 0 });
+      } else {
+        if (isUnread) cur.unread += 1;
+      }
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      new Date(b.last.created_at).getTime() - new Date(a.last.created_at).getTime(),
+    );
+  }, [rows, user?.id]);
+
+  const ticketIds = useMemo(
+    () => [...new Set(groups.map((g) => g.ticketId).filter(Boolean) as string[])],
+    [groups],
+  );
+  const { data: ticketsMap = {} } = useQuery({
+    queryKey: ["tech-atend-tickets", ticketIds.join(",")],
+    enabled: ticketIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("tickets")
+        .select("id, ticket_number, title").in("id", ticketIds);
+      const out: Record<string, { ticket_number: string; title: string }> = {};
+      for (const t of (data ?? []) as any[]) out[t.id] = { ticket_number: t.ticket_number, title: t.title };
+      return out;
+    },
+  });
+
+  const chatHeader = chatTicketId ? (ticketsMap as any)[chatTicketId] : null;
+
+  return (
+    <div className="w-full px-3 py-4 sm:px-6 lg:px-8 lg:py-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary"><MessageSquare className="h-5 w-5" /></div>
+          <div>
+            <h1 className="font-display text-2xl font-semibold tracking-tight">Mensagens</h1>
+            <p className="text-sm text-muted-foreground">Seus atendimentos com a supervisão. Toque em um para abrir o chat.</p>
+          </div>
+        </div>
+        <Button onClick={() => setOpenNew(true)}>
+          <Plus className="h-4 w-4" /> Abrir atendimento
+        </Button>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-soft">
+        {isLoading ? (
+          <div className="py-12 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" /></div>
+        ) : groups.length === 0 ? (
+          <div className="px-4 py-12 text-center text-sm text-muted-foreground">
+            Você ainda não tem atendimentos. Toque em <span className="font-semibold text-foreground">Abrir atendimento</span> para começar.
+          </div>
+        ) : (
+          <ul className="divide-y divide-border">
+            {groups.map((g) => {
+              const tk = g.ticketId ? (ticketsMap as any)[g.ticketId] : null;
+              const lastText = g.last.body ?? (g.last.media_type === "video" ? "📹 Vídeo" : "🖼️ Imagem");
+              return (
+                <li key={g.ticketId ?? "general"}>
+                  <button
+                    onClick={() => onOpen(g.ticketId)}
+                    className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-surface-muted/50"
+                  >
+                    <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
+                      {g.ticketId ? <TicketIcon className="h-4 w-4" /> : <MessageSquare className="h-4 w-4" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold truncate">
+                          {tk ? `${tk.ticket_number} · ${tk.title}` : "Conversa geral"}
+                        </span>
+                      </div>
+                      <div className="mt-0.5 truncate text-xs text-muted-foreground">{lastText}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[11px] text-muted-foreground">{new Date(g.last.created_at).toLocaleString("pt-BR")}</div>
+                      {g.unread > 0 && <Badge className="mt-1 bg-primary text-primary-foreground">{g.unread}</Badge>}
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <NewAtendDialog
+        open={openNew}
+        onOpenChange={setOpenNew}
+        onPicked={(ticketId) => { setOpenNew(false); onOpen(ticketId); }}
+      />
+
+      {/* Desktop chat opens as dialog; mobile uses full-screen route above */}
+      <Dialog open={!!chatFor && !isMobile} onOpenChange={(o) => !o && onClose()}>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+          <DialogHeader className="border-b border-border px-5 py-3">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <MessageSquare className="h-4 w-4 text-primary" />
+              {chatHeader ? `${chatHeader.ticket_number} · ${chatHeader.title}` : "Conversa geral"}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              {chatHeader ? (
+                <Link to="/chamados/$id" params={{ id: chatTicketId! }} className="inline-flex items-center gap-1 text-primary hover:underline">
+                  Abrir chamado <ExternalLink className="h-3 w-3" />
+                </Link>
+              ) : "Mensagens não vinculadas a um chamado"}
+            </DialogDescription>
+          </DialogHeader>
+          <ChatPanel tech={me} ticketId={chatTicketId} />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function NewAtendDialog({
+  open, onOpenChange, onPicked,
+}: { open: boolean; onOpenChange: (b: boolean) => void; onPicked: (ticketId: string | null) => void; }) {
+  const { user } = useAuth();
+  const [picked, setPicked] = useState<string>("general");
+
+  const { data: myTickets = [] } = useQuery({
+    queryKey: ["my-open-tickets", user?.id],
+    enabled: !!user && open,
+    queryFn: async () => {
+      const { data } = await supabase.from("tickets")
+        .select("id, ticket_number, title, status")
+        .eq("assigned_to", user!.id)
+        .not("status", "in", "(closed,cancelled)")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      return (data ?? []) as { id: string; ticket_number: string; title: string; status: string }[];
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Abrir atendimento</DialogTitle>
+          <DialogDescription>Escolha o chamado para iniciar a conversa, ou siga com uma conversa geral.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 py-2">
+          <Select value={picked} onValueChange={setPicked}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="general">Conversa geral (sem chamado)</SelectItem>
+              {myTickets.map((t) => (
+                <SelectItem key={t.id} value={t.id}>{t.ticket_number} · {t.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {myTickets.length === 0 && (
+            <p className="text-xs text-muted-foreground">Você não tem chamados ativos. Escolha conversa geral para falar com a supervisão.</p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={() => onPicked(picked === "general" ? null : picked)}>Abrir</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ChatPanel({ tech, ticketId, embedded, mobile }: { tech: Tech | null; ticketId: string | null; embedded?: boolean; mobile?: boolean }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [text, setText] = useState("");
@@ -238,13 +439,14 @@ function ChatPanel({ tech, embedded, mobile }: { tech: Tech | null; embedded?: b
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data: messages = [], isLoading } = useQuery({
-    queryKey: ["tech-messages", tech?.id],
+    queryKey: ["tech-messages", tech?.id, ticketId ?? "__general__"],
     enabled: !!tech,
     queryFn: async () => {
-      const { data } = await (supabase.from("technician_messages") as any)
-        .select("id, technician_id, author_id, body, media_url, media_type, created_at, read_at")
-        .eq("technician_id", tech!.id)
-        .order("created_at", { ascending: true });
+      let qb = (supabase.from("technician_messages") as any)
+        .select("id, technician_id, author_id, ticket_id, body, media_url, media_type, created_at, read_at")
+        .eq("technician_id", tech!.id);
+      qb = ticketId ? qb.eq("ticket_id", ticketId) : qb.is("ticket_id", null);
+      const { data } = await qb.order("created_at", { ascending: true });
       return (data ?? []) as Msg[];
     },
   });
@@ -252,13 +454,13 @@ function ChatPanel({ tech, embedded, mobile }: { tech: Tech | null; embedded?: b
   useEffect(() => {
     if (!tech) return;
     const ch = supabase
-      .channel(`tech-msgs-${tech.id}`)
+      .channel(`tech-msgs-${tech.id}-${ticketId ?? "g"}`)
       .on("postgres_changes",
         { event: "*", schema: "public", table: "technician_messages", filter: `technician_id=eq.${tech.id}` },
-        () => qc.invalidateQueries({ queryKey: ["tech-messages", tech.id] }))
+        () => qc.invalidateQueries({ queryKey: ["tech-messages", tech.id, ticketId ?? "__general__"] }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [tech, qc]);
+  }, [tech, ticketId, qc]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -272,6 +474,7 @@ function ChatPanel({ tech, embedded, mobile }: { tech: Tech | null; embedded?: b
       const ids = unread.map((m) => m.id);
       await (supabase.from("technician_messages") as any).update({ read_at: new Date().toISOString() }).in("id", ids);
       qc.invalidateQueries({ queryKey: ["msg-summaries"] });
+      qc.invalidateQueries({ queryKey: ["tech-atend-list"] });
     })();
   }, [messages, user, tech, qc]);
 
@@ -289,11 +492,12 @@ function ChatPanel({ tech, embedded, mobile }: { tech: Tech | null; embedded?: b
         media_type = file.type.startsWith("video") ? "video" : "image";
       }
       const { error } = await (supabase.from("technician_messages") as any).insert({
-        technician_id: tech.id, author_id: user.id, body: text || null, media_url, media_type,
+        technician_id: tech.id, author_id: user.id,
+        ticket_id: ticketId, body: text || null, media_url, media_type,
       });
       if (error) throw new Error(error.message);
     },
-    onSuccess: () => { setText(""); setFile(null); qc.invalidateQueries({ queryKey: ["tech-messages", tech?.id] }); },
+    onSuccess: () => { setText(""); setFile(null); qc.invalidateQueries({ queryKey: ["tech-messages", tech?.id, ticketId ?? "__general__"] }); },
     onError: (e: any) => toast.error("Falha ao enviar", { description: e?.message }),
   });
 
