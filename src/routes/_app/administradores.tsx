@@ -75,6 +75,20 @@ function AdminsPage() {
     onError: (e: any) => toast.error("Falha", { description: e?.message }),
   });
 
+  const addRole = useMutation({
+    mutationFn: async ({ user_id, role }: { user_id: string; role: AppRole }) => {
+      const { error } = await (supabase.from("user_roles") as any)
+        .insert({ user_id, role });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast.success("Papel atualizado");
+      qc.invalidateQueries({ queryKey: ["staff-list"] });
+      setEditing(null);
+    },
+    onError: (e: any) => toast.error("Falha", { description: e?.message }),
+  });
+
   if (!isAdmin) {
     return (
       <div className="px-6 py-10 text-center">
@@ -130,35 +144,65 @@ function AdminsPage() {
           </div>
         ) : (
           <ul className="divide-y divide-border">
-            {Array.from(byUser.entries()).map(([uid, entry]) => (
-              <li key={uid} className="flex flex-wrap items-center gap-3 p-4">
-                <div className="grid h-9 w-9 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                  {(entry.profile?.full_name ?? "?").slice(0, 2).toUpperCase()}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">{entry.profile?.full_name ?? "—"}</div>
-                  <div className="truncate text-xs text-muted-foreground">{entry.profile?.email ?? uid}</div>
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {entry.roles.map((r) => (
-                    <button
-                      key={r.id}
-                      onClick={() => setRemoving({
-                        user_id: uid, role: r.role,
-                        name: entry.profile?.full_name ?? entry.profile?.email ?? uid,
-                      })}
-                      className="group" title="Clique para revogar"
-                    >
-                      <Badge variant="outline" className={`gap-1 ${ROLE_CLS[r.role]}`}>
+            {Array.from(byUser.entries()).map(([uid, entry]) => {
+              const currentRoles = entry.roles.map((r) => r.role);
+              const primaryRole = currentRoles.includes("admin") ? "admin" : currentRoles[0];
+              const primaryRoleObj = entry.roles.find((r) => r.role === primaryRole) ?? entry.roles[0];
+              return (
+                <li key={uid} className="flex flex-wrap items-center gap-3 p-4">
+                  <div className="grid h-9 w-9 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                    {(entry.profile?.full_name ?? "?").slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{entry.profile?.full_name ?? "—"}</div>
+                    <div className="truncate text-xs text-muted-foreground">{entry.profile?.email ?? uid}</div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {entry.roles.map((r) => (
+                      <Badge key={r.id} variant="outline" className={`gap-1 ${ROLE_CLS[r.role]}`}>
                         {r.role === "admin" ? <ShieldCheck className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
                         {ROLE_LABEL[r.role]}
-                        <Trash2 className="h-3 w-3 opacity-0 transition group-hover:opacity-100" />
                       </Badge>
-                    </button>
-                  ))}
-                </div>
-              </li>
-            ))}
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
+                      title="Editar papel"
+                      onClick={() => {
+                        setEditing({ user_id: uid, profile: entry.profile, currentRoles });
+                        setEditRole(primaryRole);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
+                      title="Ver detalhes"
+                      onClick={() => setViewing({ profile: entry.profile, roles: currentRoles })}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      title="Excluir / revogar acesso"
+                      onClick={() => primaryRoleObj && setRemoving({
+                        user_id: uid, role: primaryRoleObj.role,
+                        name: entry.profile?.full_name ?? entry.profile?.email ?? uid,
+                      })}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -168,6 +212,67 @@ function AdminsPage() {
         onOpenChange={setCreateOpen}
         onCreated={() => qc.invalidateQueries({ queryKey: ["staff-list"] })}
       />
+
+      <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detalhes do usuário</DialogTitle>
+            <DialogDescription>Informações de acesso e papéis atribuídos.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div><span className="text-muted-foreground">Nome:</span> <b>{viewing?.profile?.full_name ?? "—"}</b></div>
+            <div><span className="text-muted-foreground">E-mail:</span> {viewing?.profile?.email ?? "—"}</div>
+            <div><span className="text-muted-foreground">Cargo:</span> {viewing?.profile?.job_title ?? "—"}</div>
+            <div>
+              <span className="text-muted-foreground">Papéis:</span>{" "}
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {viewing?.roles.map((r) => (
+                  <Badge key={r} variant="outline" className={`gap-1 ${ROLE_CLS[r]}`}>{ROLE_LABEL[r]}</Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar papel</DialogTitle>
+            <DialogDescription>Adicione um novo papel para {editing?.profile?.full_name ?? "este usuário"}.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Papéis atuais</Label>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {editing?.currentRoles.map((r) => (
+                  <Badge key={r} variant="outline" className={`gap-1 ${ROLE_CLS[r]}`}>{ROLE_LABEL[r]}</Badge>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Adicionar novo papel</Label>
+              <Select value={editRole} onValueChange={(v) => setEditRole(v as AppRole)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(["admin", "supervisor", "senior_tech", "tech"] as AppRole[])
+                    .filter((r) => !editing?.currentRoles.includes(r))
+                    .map((r) => <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button
+              disabled={addRole.isPending || !editing || editing.currentRoles.includes(editRole)}
+              onClick={() => editing && addRole.mutate({ user_id: editing.user_id, role: editRole })}
+            >
+              {addRole.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Adicionar papel"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!removing} onOpenChange={(o) => !o && setRemoving(null)}>
         <AlertDialogContent>
