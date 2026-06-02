@@ -39,7 +39,7 @@ function DashboardPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("tickets")
-        .select("id, ticket_number, title, status, priority, created_at, deadline, contact_name, client_id, clients(company)")
+        .select("id, ticket_number, title, status, priority, created_at, closed_at, deadline, contact_name, client_id, assigned_to, clients(company)")
         .order("created_at", { ascending: false })
         .limit(50);
       return data ?? [];
@@ -286,8 +286,8 @@ function aggregateCounts(tickets: any[]) {
   return {
     open: tickets.filter((t) => t.status === "open").length,
     inProgress: tickets.filter((t) => t.status === "in_progress").length,
-    resolvedToday: tickets.filter((t) => t.status === "resolved" && new Date(t.created_at) >= todayStart).length,
-    resolvedMonth: tickets.filter((t) => t.status === "resolved" && new Date(t.created_at) >= monthStart).length,
+    resolvedToday: tickets.filter((t) => t.status === "resolved" && t.closed_at && new Date(t.closed_at) >= todayStart).length,
+    resolvedMonth: tickets.filter((t) => t.status === "resolved" && t.closed_at && new Date(t.closed_at) >= monthStart).length,
     critical: tickets.filter((t) => t.priority === "critical").length,
   };
 }
