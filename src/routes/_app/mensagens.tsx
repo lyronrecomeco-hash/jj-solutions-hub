@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { Search, Paperclip, Send, Image as ImageIcon, Video, Loader2, MessageSquare } from "lucide-react";
+import { Search, Paperclip, Send, Image as ImageIcon, Video, Loader2, MessageSquare, Check, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 export const Route = createFileRoute("/_app/mensagens")({ component: MessagesPage });
 
 type Tech = { id: string; full_name: string; photo_url: string | null; specialty: string | null };
-type Msg = { id: string; technician_id: string; author_id: string; body: string | null; media_url: string | null; media_type: string | null; created_at: string };
+type Msg = { id: string; technician_id: string; author_id: string; body: string | null; media_url: string | null; media_type: string | null; created_at: string; read_at: string | null };
 
 function MessagesPage() {
   const { user, isStaff } = useAuth();
@@ -33,7 +33,6 @@ function MessagesPage() {
     },
   });
 
-  // Default: if not staff, force own mural
   useEffect(() => {
     if (!activeId) {
       if (!isStaff && user) setActiveId(user.id);
@@ -46,14 +45,41 @@ function MessagesPage() {
     enabled: !!activeId,
     queryFn: async () => {
       const { data } = await (supabase.from("technician_messages") as any)
-        .select("id, technician_id, author_id, body, media_url, media_type, created_at")
+        .select("id, technician_id, author_id, body, media_url, media_type, created_at, read_at")
         .eq("technician_id", activeId)
         .order("created_at", { ascending: true });
       return (data ?? []) as Msg[];
     },
   });
 
-  useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }); }, [messages]);
+  // Realtime subscription
+  useEffect(() => {
+    if (!activeId) return;
+    const ch = supabase
+      .channel(`tech-msgs-${activeId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "technician_messages", filter: `technician_id=eq.${activeId}` },
+        () => qc.invalidateQueries({ queryKey: ["tech-messages", activeId] }),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [activeId, qc]);
+
+  useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages]);
+
+  // Mark incoming messages as read
+  useEffect(() => {
+    if (!user || !activeId) return;
+    const unread = messages.filter((m) => !m.read_at && m.author_id !== user.id);
+    if (unread.length === 0) return;
+    (async () => {
+      const ids = unread.map((m) => m.id);
+      await (supabase.from("technician_messages") as any)
+        .update({ read_at: new Date().toISOString() })
+        .in("id", ids);
+    })();
+  }, [messages, user, activeId]);
 
   const send = useMutation({
     mutationFn: async () => {
@@ -78,7 +104,7 @@ function MessagesPage() {
     onError: (e: any) => toast.error("Falha ao enviar", { description: e?.message }),
   });
 
-  const activeTech = techs.find((t) => t.id === activeId) ?? null;
+  const activeTech = useMemo(() => techs.find((t) => t.id === activeId) ?? null, [techs, activeId]);
   const filtered = techs.filter((t) => t.full_name.toLowerCase().includes(search.toLowerCase()));
 
   return (
@@ -103,7 +129,7 @@ function MessagesPage() {
                   </Avatar>
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">{t.full_name}</div>
-                    <div className="truncate text-xs text-muted-foreground">{t.specialty ?? "—"}</div>
+                    <div className="truncate text-xs text-muted-foreground">{t.specialty ?? "Técnico"}</div>
                   </div>
                 </button>
               );
@@ -117,7 +143,7 @@ function MessagesPage() {
           <MessageSquare className="h-4 w-4 text-muted-foreground" />
           <div>
             <div className="text-sm font-semibold">{activeTech?.full_name ?? "Mural do técnico"}</div>
-            <div className="text-[11px] text-muted-foreground">Registro de atendimento com fotos e vídeos do campo.</div>
+            <div className="text-[11px] text-muted-foreground">Conversa em tempo real com confirmação de leitura.</div>
           </div>
         </header>
 
@@ -140,8 +166,11 @@ function MessagesPage() {
                         <video src={m.media_url} controls className="mb-2 max-h-72 rounded-lg" />
                       )}
                       {m.body && <div className="whitespace-pre-wrap text-sm">{m.body}</div>}
-                      <div className={`mt-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                        {new Date(m.created_at).toLocaleString("pt-BR")}
+                      <div className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                        <span>{new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+                        {mine && (m.read_at
+                          ? <CheckCheck className="h-3.5 w-3.5 text-sky-300" />
+                          : <Check className="h-3.5 w-3.5" />)}
                       </div>
                     </div>
                   </li>
