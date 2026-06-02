@@ -36,6 +36,9 @@ const customerItems: NavItem[] = [
 
 const analysisItems: NavItem[] = [
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
+];
+
+const communicationItems: NavItem[] = [
   { title: "Mensagens", url: "/mensagens", icon: MessageSquare },
 ];
 
