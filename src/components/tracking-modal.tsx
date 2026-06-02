@@ -12,8 +12,8 @@ type Tech = { id: string; full_name: string };
 
 const techIcon = L.divIcon({
   className: "tech-marker",
-  html: `<div style="width:24px;height:24px;border-radius:50%;background:#2563eb;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.35)"></div>`,
-  iconSize: [24, 24], iconAnchor: [12, 12],
+  html: `<div style="width:18px;height:18px;border-radius:50%;background:#2563eb;border:3px solid white;box-shadow:0 0 0 4px rgba(37,99,235,0.25), 0 2px 8px rgba(0,0,0,0.35)"></div>`,
+  iconSize: [18, 18], iconAnchor: [9, 9],
 });
 
 function Recenter({ pos }: { pos: [number, number] }) {
