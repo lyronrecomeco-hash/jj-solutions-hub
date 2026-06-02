@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   ArrowLeft, Clock, MapPin, User, Phone, Wrench, Calendar, Upload,
   Play, Pause, CheckCircle2, Loader2, Image as ImageIcon, FileText, X,
+  Star, Plus, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,6 +20,9 @@ import {
 import {
   Tabs, TabsContent, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
