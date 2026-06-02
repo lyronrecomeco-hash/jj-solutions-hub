@@ -464,7 +464,7 @@ function KanbanCard({ t, dragging }: { t: Ticket; dragging?: boolean }) {
             <button
               type="button"
               onPointerDown={(e) => e.stopPropagation()}
-              className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-md text-muted-foreground opacity-0 transition hover:bg-surface-muted hover:text-foreground group-hover:opacity-100 data-[state=open]:opacity-100"
+              className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-md text-muted-foreground transition hover:bg-surface-muted hover:text-foreground data-[state=open]:bg-surface-muted data-[state=open]:text-foreground"
               aria-label="Ações"
             >
               <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", menuOpen && "rotate-180")} />
