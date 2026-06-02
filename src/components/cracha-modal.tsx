@@ -107,7 +107,7 @@ export function CrachaModal({ tech, open, onOpenChange }: Props) {
                 {auto ? "Pausar rotação" : "Rotação automática"}
               </Button>
               <Button size="sm" onClick={download}>
-                <Download className="h-3.5 w-3.5" /> Baixar PDF
+                <Download className="h-3.5 w-3.5" /> Baixar imagem
               </Button>
             </div>
           </div>
