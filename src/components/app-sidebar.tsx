@@ -1,7 +1,7 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard, Ticket, Users, Building2, BarChart3, MessageSquare,
-  Settings, ScrollText, LogOut, IdCard, ClipboardList, UserCog, ShieldCheck,
+  Settings, ScrollText, LogOut, IdCard, ClipboardList, UserCog, ShieldCheck, UserCircle,
 } from "lucide-react";
 
 import {
@@ -20,6 +20,7 @@ const operationItems: NavItem[] = [
 ];
 
 const techSelfItems: NavItem[] = [
+  { title: "Meu Perfil", url: "/meu-perfil", icon: UserCircle, key: "meu-perfil" },
   { title: "Meus Dados", url: "/meus-dados", icon: IdCard, key: "meus-dados" },
   { title: "Mensagens", url: "/mensagens", icon: MessageSquare, key: "mensagens" },
 ];
