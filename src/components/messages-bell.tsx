@@ -1,13 +1,40 @@
 import { MessageSquare } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
-import { useNotifications } from "@/hooks/use-notifications";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 export function MessagesBell() {
-  const { items } = useNotifications();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const unread = items.filter((n) => n.type === "message" && !n.read_at).length;
+  const qc = useQueryClient();
+  const { data: unread = 0 } = useQuery({
+    queryKey: ["message-unread-count", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { count } = await (supabase.from("notifications") as any)
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user!.id)
+        .eq("type", "message")
+        .is("read_at", null);
+      return count ?? 0;
+    },
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`msg-bell:${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["message-unread-count", user.id] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc, user]);
 
   return (
     <Button
