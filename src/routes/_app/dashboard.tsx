@@ -307,23 +307,30 @@ function buildStatusData(tickets: any[]) {
   return Array.from(map.entries()).map(([k, v]) => ({ name: STATUS_LABEL[k] ?? k, value: v }));
 }
 
-function buildProductivityData() {
-  return [
-    { name: "Carlos", resolvidos: 18 }, { name: "Marina", resolvidos: 24 },
-    { name: "Rafael", resolvidos: 15 }, { name: "Júlia", resolvidos: 21 },
-    { name: "Bruno", resolvidos: 12 }, { name: "Paula", resolvidos: 19 },
-  ];
+function buildProductivityData(tickets: any[], techs: any[]) {
+  const byTech = new Map<string, number>();
+  tickets.filter((t) => t.status === "resolved" && t.assigned_to).forEach((t) => {
+    byTech.set(t.assigned_to, (byTech.get(t.assigned_to) ?? 0) + 1);
+  });
+  return techs.slice(0, 8).map((t) => ({
+    name: (t.full_name ?? "—").split(" ")[0],
+    resolvidos: byTech.get(t.id) ?? 0,
+  }));
 }
 
-function buildTrendData() {
+function buildTrendData(tickets: any[]) {
   const out: { day: string; abertos: number; resolvidos: number }[] = [];
   const today = new Date();
   for (let i = 13; i >= 0; i--) {
-    const d = new Date(today); d.setDate(today.getDate() - i);
+    const d = new Date(today); d.setDate(today.getDate() - i); d.setHours(0, 0, 0, 0);
+    const next = new Date(d); next.setDate(d.getDate() + 1);
+    const inDay = tickets.filter((t) => {
+      const c = new Date(t.created_at); return c >= d && c < next;
+    });
     out.push({
       day: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
-      abertos: 8 + Math.round(Math.random() * 10),
-      resolvidos: 6 + Math.round(Math.random() * 9),
+      abertos: inDay.length,
+      resolvidos: inDay.filter((t) => t.status === "resolved").length,
     });
   }
   return out;
