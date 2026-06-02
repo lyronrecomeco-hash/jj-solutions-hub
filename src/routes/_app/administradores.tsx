@@ -8,21 +8,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/use-auth";
+import { StaffCreateSheet } from "@/components/staff-create-sheet";
 
 export const Route = createFileRoute("/_app/administradores")({ component: AdminsPage });
 
 type AppRole = "admin" | "supervisor" | "senior_tech" | "tech";
 const ROLE_LABEL: Record<AppRole, string> = {
-  admin: "Administrador",
-  supervisor: "Supervisor",
-  senior_tech: "Técnico Sênior",
-  tech: "Técnico",
+  admin: "Administrador", supervisor: "Supervisor", senior_tech: "Técnico Sênior", tech: "Técnico",
 };
 const ROLE_CLS: Record<AppRole, string> = {
   admin: "border-destructive/30 bg-destructive/10 text-destructive",
@@ -35,14 +32,14 @@ function AdminsPage() {
   const qc = useQueryClient();
   const { isAdmin, user } = useAuth();
   const [search, setSearch] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
   const [removing, setRemoving] = useState<{ user_id: string; role: AppRole; name: string } | null>(null);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["staff-list"],
     queryFn: async () => {
       const { data: roles } = await supabase
-        .from("user_roles")
-        .select("id, user_id, role, created_at")
+        .from("user_roles").select("id, user_id, role, created_at")
         .order("created_at", { ascending: false });
       if (!roles?.length) return [];
       const ids = Array.from(new Set(roles.map((r) => r.user_id)));
@@ -51,23 +48,6 @@ function AdminsPage() {
       const pmap = new Map((profiles ?? []).map((p) => [p.id, p]));
       return roles.map((r) => ({ ...r, profile: pmap.get(r.user_id) }));
     },
-  });
-
-  const promote = useMutation({
-    mutationFn: async ({ email, role }: { email: string; role: AppRole }) => {
-      const { data: prof } = await supabase
-        .from("profiles").select("id, full_name").eq("email", email.toLowerCase().trim()).maybeSingle();
-      if (!prof) throw new Error("Nenhum usuário encontrado com este e-mail. O técnico precisa fazer login antes.");
-      const { error } = await supabase
-        .from("user_roles").insert({ user_id: prof.id, role });
-      if (error && !/duplicate/i.test(error.message)) throw new Error(error.message);
-      return prof.full_name;
-    },
-    onSuccess: (name) => {
-      toast.success(`Acesso concedido a ${name}`);
-      qc.invalidateQueries({ queryKey: ["staff-list"] });
-    },
-    onError: (e: any) => toast.error("Falha", { description: e?.message }),
   });
 
   const revoke = useMutation({
@@ -87,9 +67,6 @@ function AdminsPage() {
     onError: (e: any) => toast.error("Falha", { description: e?.message }),
   });
 
-  const [newEmail, setNewEmail] = useState("");
-  const [newRole, setNewRole] = useState<AppRole>("supervisor");
-
   if (!isAdmin) {
     return (
       <div className="px-6 py-10 text-center">
@@ -106,7 +83,6 @@ function AdminsPage() {
       || (r.profile?.email ?? "").toLowerCase().includes(s);
   });
 
-  // group by user
   const byUser = new Map<string, { profile: any; roles: { id: string; role: AppRole }[] }>();
   for (const r of filtered) {
     const entry = byUser.get(r.user_id) ?? { profile: r.profile, roles: [] };
@@ -116,43 +92,16 @@ function AdminsPage() {
 
   return (
     <div className="px-4 py-6 sm:px-6 lg:px-8">
-      <header className="mb-6">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Sistema</p>
-        <h1 className="font-display text-2xl font-semibold tracking-tight">Administradores & Acessos</h1>
-        <p className="text-sm text-muted-foreground">Gerencie quem pode administrar a plataforma.</p>
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Sistema</p>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Administradores & Acessos</h1>
+          <p className="text-sm text-muted-foreground">Gerencie quem pode acessar a plataforma e o que cada um vê.</p>
+        </div>
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus className="h-4 w-4" /> Adicionar
+        </Button>
       </header>
-
-      <div className="mb-5 rounded-xl border border-border bg-surface p-4 shadow-soft">
-        <div className="mb-3 flex items-center gap-2">
-          <UserCog className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">Conceder acesso</h2>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-[1fr_220px_auto]">
-          <Input
-            placeholder="E-mail do usuário (já cadastrado)"
-            value={newEmail}
-            onChange={(e) => setNewEmail(e.target.value)}
-          />
-          <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {(Object.keys(ROLE_LABEL) as AppRole[]).map((r) => (
-                <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            onClick={() => { if (newEmail) promote.mutate({ email: newEmail, role: newRole }); }}
-            disabled={promote.isPending || !newEmail}
-          >
-            {promote.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Conceder
-          </Button>
-        </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          O usuário precisa ter feito login pelo menos uma vez antes de receber acesso.
-        </p>
-      </div>
 
       <div className="rounded-xl border border-border bg-surface shadow-soft">
         <div className="flex items-center gap-2 border-b border-border p-3">
@@ -167,7 +116,10 @@ function AdminsPage() {
         {isLoading ? (
           <div className="p-10 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" /></div>
         ) : byUser.size === 0 ? (
-          <div className="p-10 text-center text-sm text-muted-foreground">Nenhum usuário com papéis ainda.</div>
+          <div className="p-10 text-center text-sm text-muted-foreground">
+            <UserCog className="mx-auto mb-3 h-8 w-8 opacity-40" />
+            Nenhum usuário com papéis ainda. Clique em <b>Adicionar</b> para criar o primeiro.
+          </div>
         ) : (
           <ul className="divide-y divide-border">
             {Array.from(byUser.entries()).map(([uid, entry]) => (
@@ -184,12 +136,10 @@ function AdminsPage() {
                     <button
                       key={r.id}
                       onClick={() => setRemoving({
-                        user_id: uid,
-                        role: r.role,
+                        user_id: uid, role: r.role,
                         name: entry.profile?.full_name ?? entry.profile?.email ?? uid,
                       })}
-                      className="group"
-                      title="Clique para revogar"
+                      className="group" title="Clique para revogar"
                     >
                       <Badge variant="outline" className={`gap-1 ${ROLE_CLS[r.role]}`}>
                         {r.role === "admin" ? <ShieldCheck className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
@@ -204,6 +154,12 @@ function AdminsPage() {
           </ul>
         )}
       </div>
+
+      <StaffCreateSheet
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={() => qc.invalidateQueries({ queryKey: ["staff-list"] })}
+      />
 
       <AlertDialog open={!!removing} onOpenChange={(o) => !o && setRemoving(null)}>
         <AlertDialogContent>

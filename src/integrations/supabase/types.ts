@@ -447,6 +447,8 @@ export type Database = {
           cpf: string | null
           created_at: string
           desired_employment_type: Database["public"]["Enums"]["employment_type"]
+          document_type: string | null
+          document_url: string | null
           email: string
           full_name: string
           id: string
@@ -471,6 +473,8 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           desired_employment_type?: Database["public"]["Enums"]["employment_type"]
+          document_type?: string | null
+          document_url?: string | null
           email: string
           full_name: string
           id?: string
@@ -495,6 +499,8 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           desired_employment_type?: Database["public"]["Enums"]["employment_type"]
+          document_type?: string | null
+          document_url?: string | null
           email?: string
           full_name?: string
           id?: string

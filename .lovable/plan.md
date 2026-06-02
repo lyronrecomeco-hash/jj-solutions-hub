@@ -1,158 +1,148 @@
-## Plano de Execução — Ajustes Finais JJ Informática
 
-Vou dividir em blocos por prioridade. Tudo será feito sem quebrar o que já funciona.
+# Plano de finalização — JJ Informática
 
----
-
-### 1. Solicitar Cadastro (`/solicitar-cadastro`)
-- **Responsividade mobile**: refatorar o StepBar para versão compacta no mobile (dots numerados + título do passo atual em vez de barra horizontal completa).
-- **Placeholders nos inputs** com opacidade baixa, estilo dev:
-  - Nome → `Ex: Pedro`
-  - Sobrenome → `Ex: Martins`
-  - E-mail → `seuemail@gmail.com`
-  - Senha → `••••••••`
-  - CPF → `000.000.000-00`, RG → `00.000.000-0`, Telefone → `(00) 00000-0000`, etc.
-- **Validações do PDF**:
-  - CPF com algoritmo de dígito verificador
-  - RG formato válido
-  - Idade ≥ 18 (calculada da data de nascimento)
-  - Mensagens de erro inline
+Analisei o painel atual e o PDF v1.0 (HyroCode). Tudo abaixo é executável sem refazer o que já está pronto.
 
 ---
 
-### 2. Mapa (Monitoramento + Modal de Rastreio)
-- **Remover marca d'água** "Leaflet | © CARTO © OpenStreetMap" (configurar `attributionControl={false}` e atribuição mínima discreta no rodapé).
-- **Suporte a tema claro/escuro automático**:
-  - Light: `voyager` (CARTO) — ruas nítidas e legíveis
-  - Dark: `dark_all` (CARTO) — combina com modo escuro do painel
-  - Detecta via `useTheme()` e troca tiles dinamicamente
-- **Qualidade premium**: maxZoom 20, retina tiles (`@2x`), labels separados por cima.
-- **Modal de Rastreio (revisão do que foi pedido antes)**:
-  - Painel lateral esquerdo com: foto/avatar do técnico, nome, endereço textual (reverse geocoding), velocidade, precisão, última atualização "há X segundos" ao vivo
-  - Mapa à direita ocupando 60-65%
-  - Atualização em tempo real por segundo (já temos `watchPosition`, garantir que o marker se move com animação suave `flyTo`)
-  - Botão "Centralizar" e "Abrir no Google Maps"
+## Fase 1 — Cadastro pendente + documento com foto + "Atribuir login"
+
+Cap. 01 e 02 do PDF.
+
+1. Migração: adicionar em `technician_signups`:
+   - `document_url text` (foto do documento)
+   - `document_type text` ("rg" | "cnh")
+2. Bucket Storage `signup-documents` (público leitura para staff via policy) + policies.
+3. Tela `/solicitar-cadastro`:
+   - Adicionar campo upload "Documento com foto (RG/CNH)" obrigatório, antes do envio.
+   - Mostrar preview, validar tamanho/tipo (jpg/png/pdf até 8MB).
+4. Tela `/cadastros-pendentes`:
+   - No "olhinho" (ver detalhes), exibir o documento enviado em galeria.
+   - Substituir botão "Aprovar" simples por **"Atribuir login"** → abre Sheet à direita:
+     - Nome, sobrenome (auto-preenchidos)
+     - E-mail (auto)
+     - Senha inicial (gerada + visível + copiar)
+     - Nível de acesso (tech / senior_tech / supervisor / admin)
+     - Permissões de menu (checkboxes — ver Fase 4)
+   - Ao salvar: server function `createTechnicianAccount` (admin client) cria usuário no auth, profile, role e permissões, marca signup como `approved`, e dispara e-mail com credenciais.
+5. Rejeitar continua igual (motivo obrigatório).
 
 ---
 
-### 3. Crachá Digital (bug crítico)
-- **Corrigir bug visual do modal** (overflow/scroll mostrado no print) — ajustar altura do wrapper 3D, `max-h-[90vh]`, conteúdo com scroll interno se necessário.
-- **Responsividade mobile**: crachá redimensiona (escala em telas <640px), botões empilham.
-- **Download de imagem (não funciona hoje)**:
-  - Problema raiz: `oklch()` nos estilos quebra `html2canvas` (erro detectado no runtime: "Attempting to parse an unsupported color function oklch")
-  - Solução: renderizar fora do DOM atual em um container clone com cores convertidas para sRGB hex; OU usar `html-to-image` (suporta oklch nativamente)
-  - **Vou trocar `html2canvas` por `html-to-image`** — funciona com tokens modernos e gera PNG real para impressão
-- **Restaurar itens removidos do crachá** (verificar versão anterior do `cracha-card.tsx` e recolocar elementos perdidos: faixa "SERVICE DESK", pontinho de status, etc. conforme print de referência).
+## Fase 2 — Administradores: substituir "Conceder" por "Adicionar"
+
+1. Em `/administradores`:
+   - Remover o bloco "Conceder acesso por e-mail".
+   - Botão **"+ Adicionar usuário"** abre Sheet à direita com:
+     - Nome, Sobrenome
+     - E-mail
+     - Senha
+     - Nível de acesso (admin / supervisor / senior_tech / tech)
+     - Permissões de menu (checkbox por item do sidebar)
+   - Submit → server fn `createStaffAccount` (admin client) cria auth user + profile + role + linha em `admin_permissions`.
+2. Listagem permanece (com chips), mas adiciona coluna "Permissões" mostrando contagem; clique abre Sheet de edição.
+3. **Itens com permissão negada não aparecem no sidebar** — `app-sidebar.tsx` lê `admin_permissions.permissions` do usuário logado e filtra. Admin puro ignora filtro.
 
 ---
 
-### 4. Remoção de Dados Mockados
-- **Dashboard** (`/dashboard`): auditar e ligar 100% a queries reais (cards de stats, gráficos, últimos chamados).
-- **Atribuição** (`/atribuicao`): listar técnicos/chamados reais do banco.
-- **Clientes** (`/clientes`): garantir lista vinda do banco (já está, validar).
-- **Relatórios** (`/relatorios`): substituir números/gráficos fake por agregações reais.
-- **Logs** (`/logs`): ver bloco 5.
+## Fase 3 — "Meus dados" (tenant isolado para técnico)
+
+1. Renomear rota `/meu-cracha` para `/meus-dados` (manter alias para compat).
+2. Sidebar do técnico: item "Meu crachá" vira **"Meus dados"**.
+3. Tela `/meus-dados` exibe **apenas o próprio perfil** (não a lista):
+   - Aba "Cadastro": Nome, CPF, RG, Endereço completo, Documento com foto (visualizar), Telefone, E-mail, Especialidade. Editável onde o PDF permite.
+   - Aba "Chamados": fila do técnico (`status in (open, in_progress, scheduled)` + `assigned_to = auth.uid()`).
+   - Aba "Resolvidos": histórico (`status in (resolved, partially_resolved, not_resolved, cancelled)` + `assigned_to = auth.uid()`).
+   - Aba "Crachá": componente existente.
+4. RLS de `tickets` já força isolamento ("Techs see assigned tickets") — query no client usa `.eq('assigned_to', user.id)` como defesa em profundidade.
+5. Remover rota `/tecnicos` do menu do técnico (só admin/supervisor).
 
 ---
 
-### 5. Sistema de Logs Automático (alto nível)
-- **Nova tabela `system_logs`** com: `id, actor_id, actor_email, action, entity, entity_id, metadata jsonb, ip, user_agent, created_at`.
-- **Hook global `useActivityLogger`** disparado em:
-  - Login / logout
-  - Criação / edição / exclusão de tickets, técnicos, clientes
-  - Aprovação / rejeição de cadastros
-  - Mensagens enviadas
-  - Mudanças de status
-- **Server function `logEvent`** com `requireSupabaseAuth`, captura IP via `getRequestIP` e UA via headers.
-- **Triggers SQL** em tabelas críticas (tickets, profiles, technician_signups) para capturar mudanças mesmo sem passar pelo app.
-- **Tela `/logs` redesenhada**: tabela em tempo real (realtime channel), filtros por ator/ação/entidade, busca, paginação.
+## Fase 4 — Permissões de menu (motor)
+
+1. Migração: `admin_permissions.permissions` jsonb fica `{ menus: { dashboard: true, chamados: true, ... } }`.
+2. Hook `usePermissions()` carrega permissões do usuário logado.
+3. `app-sidebar.tsx` filtra itens pelo hook (admin bypassa).
+4. Guards de rota: cada `_app/*` faz `if (!can("rota")) navigate("/")`.
 
 ---
 
-### 6. Notificações
-- **Card de notificação responsivo mobile**: dropdown vira sheet/drawer full-screen em telas pequenas.
-- **Configurações de notificação por tipo** (em `/configuracoes`):
-  - Toggles: Novos chamados, Cadastros pendentes, Mensagens, Atribuições
-  - Salvos em `notification_preferences` (nova tabela: `user_id, type, enabled`)
-  - Edge no trigger SQL: respeitar preferência antes de inserir notificação
+## Fase 5 — Novo chamado em painel lateral
+
+1. Em `/chamados`, botão "Novo chamado" abre `<Sheet side="right">` em vez do modal.
+2. Form em 3 seções (Cliente, Atendimento, Detalhes), com upload de evidências inicial opcional.
+3. Validação Zod; cria ticket + atribuição opcional.
 
 ---
 
-### 7. Contraste / Ícones em Modo Claro
-- Auditar e corrigir cards de status com problema de contraste (apagados no modo claro):
-  - Card "Pendentes" (Dashboard e Chamados) — ícone de relógio
-  - Outros badges/ícones quando aplicável
-- Usar tokens semânticos (`text-warning`, `bg-warning/10`) em vez de cores hardcoded.
+## Fase 6 — Kanban com realtime + drag
+
+1. Em `/chamados`, toggle no topo: **Lista | Kanban** (Tabs).
+2. Kanban: colunas por status (Aberto, Em andamento, Agendado, Resolvido, Não resolvido, Cancelado).
+3. Drag & drop com `@dnd-kit/core` (instalar).
+   - Admin/supervisor: pode arrastar entre quaisquer colunas (respeitando RN-03).
+   - Técnico: só pode arrastar dos seus chamados e seguindo o fluxo permitido.
+4. Cards bem alinhados: número, título, cliente, prioridade (borda esquerda colorida), badge de mídia, ponto azul "novo".
+5. Realtime: `supabase.channel('tickets').on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, ...)` invalida o `useQuery` (`queryClient.invalidateQueries(['tickets'])`). Habilitar via migração: `ALTER PUBLICATION supabase_realtime ADD TABLE public.tickets;` (idempotente com `IF NOT EXISTS` lógica).
+6. Encerramento via técnico já atualiza o status → aparece instantaneamente no Kanban do admin.
 
 ---
 
-### 8. Performance / Navegação Fluida
-- **Remover spinner de carregamento "ao entrar na tela"** quando a query já tem cache → usar `placeholderData: keepPreviousData` e skeleton sutil só no primeiro mount global.
-- **Preload de rotas** em hover de `<Link>` (já parcialmente configurado, garantir `defaultPreloadStaleTime: 30s`).
-- Atualização automática a cada 1s onde faz sentido (rastreio, mensagens) via realtime, **não** polling.
+## Fase 7 — Relatórios PDF/Excel reais
+
+Cap. 14 do PDF. Bibliotecas `jspdf`, `jspdf-autotable`, `xlsx` já instaladas.
+
+1. Em `/relatorios`:
+   - Filtros: Técnico (ou Todos), Período (mês atual / anterior / intervalo), Tipo de serviço, Cliente, Status.
+   - Preview no app + botões **Exportar PDF** e **Exportar Excel**.
+2. PDF: cabeçalho JJ, resumo (total, resolvidos, em andamento, tempo médio, avaliação média), tabela com `jspdf-autotable`, rodapé com data/usuário.
+3. Excel: 1 aba "Resumo" + 1 aba "Chamados" + 1 aba "Avaliações".
+4. Server fn `getReportData` (auth) agrega dados respeitando RLS.
 
 ---
 
-### 9. Login / Acesso Técnico
-- Garantir login funcional, sem delays, com:
-  - Validação inline (e-mail / senha obrigatórios)
-  - Loading state no botão
-  - Redirect imediato pós-auth (sem flash)
-  - Mobile 100% responsivo (campos full-width, botões grandes, viewport fit)
-- Acesso técnico: ícone do crachá no sidebar/header (já existe via `/meu-cracha`, validar visibilidade).
+## Fase 8 — Preferências de notificação reais
+
+1. Em `/configuracoes` → aba Notificações:
+   - Lista de tipos: `ticket`, `message`, `signup`, `sla`, `sound`.
+   - Toggle por tipo grava em `notification_preferences (user_id, type, enabled)` via upsert.
+   - Já existe a função `notification_enabled()` no DB — confirma respeito.
+2. Carregar valores atuais no mount; salvar com debounce + toast.
 
 ---
 
-### 10. Segurança Pesada (Anti-Devtools)
-**Importante — aviso técnico**: bloqueios anti-F12/anti-devtools no navegador **não são à prova de bala** (qualquer usuário avançado contorna). Mesmo assim, vou implementar a camada mais agressiva possível:
-- **Bloqueio de teclas**: F12, Ctrl+Shift+I/J/C, Ctrl+U, Ctrl+S
-- **Bloqueio de menu de contexto** (clique direito)
-- **Detecção de devtools aberto** (técnica `debugger` em loop + diff de `window.outerHeight - window.innerHeight`) → redireciona pra `/login` e desloga
-- **Desabilita seleção de texto** em áreas sensíveis (não na inteira para não quebrar UX)
-- **Console banner** de aviso (estilo Facebook)
-- **Source map off** em produção (já está no Vite)
-- **Anti-iframe** (X-Frame-Options via meta + JS top!==self → redirect)
-- **Integrity check leve**: hash do bundle verificado em runtime
-- **Watermark invisível** com user_id em todas as páginas (anti-clone/print)
+## Fase 9 — Limpeza de mocks no Dashboard
 
-Aplicado **apenas em rotas autenticadas** (`_app`), nunca no login para não quebrar reset de senha.
+1. `dashboard.tsx`: substituir blocos "productivity" e "trends" mockados por queries reais:
+   - Produtividade = chamados resolvidos por técnico nos últimos 30 dias (agrupado).
+   - Tendência = série diária de chamados criados vs resolvidos (últimos 14 dias).
+2. Usar `recharts` (já presente).
+3. Se não houver dados: empty state com ilustração, sem números falsos.
 
 ---
 
-### 11. Itens do PDF da Estrutura (revisão e implementação)
-Vou reler o PDF e implementar:
-- **Cap. 04 — Indicador "novo" + mídia nos cards de chamado**
-- **Cap. 07-08 — Encerramento de chamado obrigatório com**:
-  - Rotina técnica executada (texto)
-  - Equipamentos/peças usadas (lista com qtd)
-  - Validação: não permite mudar status para `closed` sem esses campos
-- **Cap. 14 — Avaliação por estrelas** (cliente avalia ticket fechado, 1-5 estrelas + comentário)
-- **Relatórios PDF/Excel** (hoje só CSV) — usar `jspdf` + `xlsx`
+## Fase 10 — Polimento e QA final
 
-Após releitura, retorno **lista final do que ainda falta** vs PDF.
+1. Login técnico: revisar responsividade mobile (já parcial).
+2. Scrollbars transparentes globais (já aplicado, validar nos novos sheets).
+3. Indicador "novo" + ícone de mídia nos cards de chamado em lista e Kanban.
+4. Smoke test manual de cada fluxo; checar console e network.
 
 ---
 
-### Detalhes técnicos chave
-- Migrations SQL para: `system_logs`, `notification_preferences`, `ticket_ratings`, `ticket_resolution` (rotina + peças), trigger de log
-- Trocar `html2canvas` por `html-to-image` (`bun add html-to-image`)
-- Novo hook `useActivityLogger`, novo hook `useAntiTamper`
-- Componentes novos: `RatingStars`, `TicketCloseDialog`, `MobileStepBar`, `NotificationsSheet`
+## Capacidade do backend gratuito
+
+Lovable Cloud (Supabase free):
+- **Banco**: 500 MB. Tabelas atuais (perfis, tickets, mensagens, logs, notifs) cabem confortavelmente milhares de chamados em texto puro — estimativa: ~20-30k chamados antes de apertar.
+- **Storage**: 1 GB. É o gargalo real (fotos de evidência + documentos). Estimativa: ~500 chamados com 5 fotos médias (≈400KB cada) ou ~1500 com compressão.
+- **Bandwidth**: 5 GB/mês.
+- **Edge Functions / Auth users**: 50k MAU.
+
+**Recomendação dentro do free:** compressão de imagens no upload (já planejada no Fase 1/9 do PDF) e limite de mídias por chamado (20 já consta no PDF). Para o porte da JJ (poucos técnicos, ~50–150 chamados/mês), o plano **Free aguenta tranquilamente os primeiros 6–12 meses**. Crescendo, o passo natural é Supabase Pro ($25/mês: 8 GB DB + 100 GB Storage).
 
 ---
 
-### Ordem de execução
-1. Migrations (logs, preferências, rating, resolução)
-2. Fix crítico crachá (html-to-image + responsividade + bug modal)
-3. Mapa (tema dinâmico + sem marca d'água + rastreio profissional)
-4. Solicitar Cadastro (mobile + placeholders + validações)
-5. Limpeza de mocks (Dashboard, Atribuição, Relatórios)
-6. Sistema de Logs + tela
-7. Notificações (mobile + preferências)
-8. Fluxo de chamado (novo, mídia, encerramento, avaliação)
-9. Relatórios PDF/Excel
-10. Contraste + performance + login técnico
-11. Camada de segurança anti-devtools
-12. Releitura PDF → relatório final do que ainda falta
+## Ordem de execução
 
-Pode aprovar que eu sigo na ordem.
+Vou implementar as fases **na ordem acima**, cada uma com migração (se houver) + código + verificação. Não toco nada que não foi pedido. Nada de mocks deixados para trás.
