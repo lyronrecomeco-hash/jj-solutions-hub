@@ -1,4 +1,4 @@
-import { Bell, Check, CheckCheck, MessageSquare, Ticket, UserPlus } from "lucide-react";
+import { Bell, Check, CheckCheck, MessageSquare, Ticket, Trash2, UserPlus } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
@@ -28,8 +28,8 @@ function timeAgo(iso: string) {
   return `${Math.floor(d / 86400)} d`;
 }
 
-function List({ items, markRead, markAllRead, unreadCount, navigate, onClose }: {
-  items: NotificationRow[]; markRead: (id: string) => void; markAllRead: () => void;
+function List({ items, markRead, markAllRead, clearAll, unreadCount, navigate, onClose }: {
+  items: NotificationRow[]; markRead: (id: string) => void; markAllRead: () => void; clearAll: () => void;
   unreadCount: number; navigate: ReturnType<typeof useNavigate>; onClose?: () => void;
 }) {
   const open = (n: NotificationRow) => {
@@ -41,11 +41,18 @@ function List({ items, markRead, markAllRead, unreadCount, navigate, onClose }: 
     <>
       <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
         <div className="text-sm font-semibold">Notificações</div>
-        {unreadCount > 0 && (
-          <button onClick={markAllRead} className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline">
-            <CheckCheck className="h-3 w-3" /> Marcar todas
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {unreadCount > 0 && (
+            <button onClick={markAllRead} className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline">
+              <CheckCheck className="h-3 w-3" /> Marcar todas
+            </button>
+          )}
+          {items.length > 0 && (
+            <button onClick={clearAll} className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-destructive">
+              <Trash2 className="h-3 w-3" /> Limpar
+            </button>
+          )}
+        </div>
       </div>
       <ScrollArea className="max-h-[75vh] md:max-h-[400px]">
         {items.length === 0 ? (
@@ -85,7 +92,7 @@ function List({ items, markRead, markAllRead, unreadCount, navigate, onClose }: 
 }
 
 export function NotificationsBell() {
-  const { items, unreadCount, markRead, markAllRead } = useNotifications();
+  const { items, unreadCount, markRead, markAllRead, clearAll } = useNotifications();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
@@ -107,7 +114,7 @@ export function NotificationsBell() {
         <SheetTrigger asChild>{trigger}</SheetTrigger>
         <SheetContent side="right" className="w-full p-0 sm:max-w-md">
           <SheetHeader className="sr-only"><SheetTitle>Notificações</SheetTitle></SheetHeader>
-          <List items={items} markRead={markRead} markAllRead={markAllRead} unreadCount={unreadCount} navigate={navigate} onClose={() => setOpen(false)} />
+          <List items={items} markRead={markRead} markAllRead={markAllRead} clearAll={clearAll} unreadCount={unreadCount} navigate={navigate} onClose={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
     );
@@ -117,7 +124,7 @@ export function NotificationsBell() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[360px] p-0">
-        <List items={items} markRead={markRead} markAllRead={markAllRead} unreadCount={unreadCount} navigate={navigate} />
+        <List items={items} markRead={markRead} markAllRead={markAllRead} clearAll={clearAll} unreadCount={unreadCount} navigate={navigate} />
       </DropdownMenuContent>
     </DropdownMenu>
   );
