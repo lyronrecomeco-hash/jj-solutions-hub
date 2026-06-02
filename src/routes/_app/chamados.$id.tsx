@@ -203,6 +203,12 @@ function TicketDetailPage() {
             <TechnicalReport ticketId={id} />
           </TabsContent>
 
+          {isClosed && (
+            <TabsContent value="rating" className="mt-4">
+              <RatingPanel ticketId={id} />
+            </TabsContent>
+          )}
+
           <TabsContent value="history" className="mt-4">
             <div className="rounded-xl border border-border bg-surface p-4">
               {history.length === 0 ? (
