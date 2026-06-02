@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CrachaModal } from "@/components/cracha-modal";
 import { TechnicianFormSheet } from "@/components/technician-form-sheet";
 import { TechnicianViewSheet } from "@/components/technician-view-sheet";
+import { TrackingModal } from "@/components/tracking-modal";
 import { deleteTechnician, updateTechnician } from "@/lib/api/technicians.functions";
 import { useAuth } from "@/hooks/use-auth";
 
