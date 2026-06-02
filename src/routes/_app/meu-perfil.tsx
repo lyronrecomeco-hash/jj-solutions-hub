@@ -107,7 +107,7 @@ function MyProfilePage() {
       }
       const update: Record<string, any> = { ...form };
       if (photo_url) { update.photo_url = photo_url; update.avatar_url = photo_url; }
-      const { error } = await supabase.from("profiles").update(update).eq("id", user.id);
+      const { error } = await (supabase.from("profiles") as any).update(update).eq("id", user.id);
       if (error) throw new Error(error.message);
       return { photo_url };
     },
@@ -115,7 +115,6 @@ function MyProfilePage() {
       toast.success("Perfil atualizado");
       setPhotoFile(null);
       setPhotoPreview(null);
-      await refreshProfile?.();
       qc.invalidateQueries({ queryKey: ["profile"] });
       qc.invalidateQueries({ queryKey: ["tech"] });
       qc.invalidateQueries({ queryKey: ["techs-min"] });
