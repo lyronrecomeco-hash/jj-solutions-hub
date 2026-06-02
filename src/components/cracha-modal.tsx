@@ -23,27 +23,113 @@ export function CrachaModal({ tech, open, onOpenChange }: Props) {
   const backRef = useRef<HTMLDivElement>(null);
 
   async function printPdf() {
-    const target = flipped ? backRef.current : cardRef.current;
-    if (!target || !tech) return;
+    if (!tech || !cardRef.current || !backRef.current) return;
     setDownloading(true);
+    const prevFlipped = flipped;
+    const prevAuto = auto;
     try {
-      const dataUrl = await toPng(target, {
+      // Freeze flip animation so both faces render upright for capture
+      setAuto(false);
+      setFlipped(false);
+      await new Promise((r) => setTimeout(r, 80));
+
+      const opts = {
         pixelRatio: 4,
         cacheBust: true,
         backgroundColor: "#ffffff",
         skipFonts: false,
-      });
+        style: { transform: "none" } as Record<string, string>,
+      };
+
+      const frontPng = await toPng(cardRef.current, opts);
+      const backPng = await toPng(backRef.current, opts);
+
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageW = 210;
       const badgeW = 60;
       const badgeH = 95;
-      const x = (210 - badgeW) / 2;
-      const y = 22;
-      pdf.addImage(dataUrl, "PNG", x, y, badgeW, badgeH, undefined, "FAST");
-      pdf.save(`cracha-${tech.full_name.replace(/\s+/g, "-").toLowerCase()}.pdf`);
-      toast.success("PDF de impressão gerado");
+      const x = (pageW - badgeW) / 2;
+      const yFront = 18;
+      const yBack = yFront + badgeH + 12;
+
+      // Header
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(11);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text("JJ Informática — Crachá de Identificação", pageW / 2, 12, { align: "center" });
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(
+        `Frente e verso · ${tech.full_name} · imprimir em A4 e recortar pelo guia tracejado`,
+        pageW / 2,
+        16,
+        { align: "center" },
+      );
+
+      // Badges
+      pdf.addImage(frontPng, "PNG", x, yFront, badgeW, badgeH, undefined, "FAST");
+      pdf.addImage(backPng, "PNG", x, yBack, badgeW, badgeH, undefined, "FAST");
+
+      // Cut guides (dashed) + corner crop marks for lamination
+      pdf.setDrawColor(148, 163, 184);
+      pdf.setLineWidth(0.15);
+      pdf.setLineDashPattern([1, 1], 0);
+      pdf.rect(x, yFront, badgeW, badgeH);
+      pdf.rect(x, yBack, badgeW, badgeH);
+      pdf.setLineDashPattern([], 0);
+
+      pdf.setDrawColor(15, 23, 42);
+      pdf.setLineWidth(0.3);
+      const crop = 3;
+      const drawCrops = (cx: number, cy: number, w: number, h: number) => {
+        // 4 corners
+        const pts: [number, number][] = [
+          [cx, cy], [cx + w, cy], [cx, cy + h], [cx + w, cy + h],
+        ];
+        for (const [px, py] of pts) {
+          pdf.line(px - crop, py, px - 0.5, py);
+          pdf.line(px + 0.5, py, px + crop, py);
+          pdf.line(px, py - crop, px, py - 0.5);
+          pdf.line(px, py + 0.5, px, py + crop);
+        }
+      };
+      drawCrops(x, yFront, badgeW, badgeH);
+      drawCrops(x, yBack, badgeW, badgeH);
+
+      // Labels
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8);
+      pdf.setTextColor(71, 85, 105);
+      pdf.text("FRENTE", x - 10, yFront + 6, { align: "right" });
+      pdf.text("VERSO", x - 10, yBack + 6, { align: "right" });
+
+      // Footer
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7);
+      pdf.setTextColor(148, 163, 184);
+      pdf.text(
+        "Sangria de 3mm reservada para o recorte e plastificação · 60×95mm",
+        pageW / 2,
+        yBack + badgeH + 8,
+        { align: "center" },
+      );
+
+      // Open in new browser tab for printing
+      const blobUrl = pdf.output("bloburl");
+      const win = window.open(blobUrl, "_blank");
+      if (!win) {
+        // Popup blocked — fallback to save
+        pdf.save(`cracha-${tech.full_name.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+        toast.warning("Pop-up bloqueado — PDF baixado");
+      } else {
+        toast.success("Pronto para imprimir");
+      }
     } catch (err: any) {
       toast.error("Falha ao imprimir", { description: err?.message });
     } finally {
+      setFlipped(prevFlipped);
+      setAuto(prevAuto);
       setDownloading(false);
     }
   }
