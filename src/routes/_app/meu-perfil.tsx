@@ -30,7 +30,7 @@ type FormState = {
 };
 
 function MyProfilePage() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile } = useAuth();
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [crachaOpen, setCrachaOpen] = useState(false);
