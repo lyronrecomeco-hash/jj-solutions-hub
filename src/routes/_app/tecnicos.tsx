@@ -150,10 +150,17 @@ function TechniciansPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="inline-flex items-center gap-1.5 text-xs">
-                      <span className={`h-1.5 w-1.5 rounded-full ${r.status === "online" ? "bg-success" : r.status === "busy" ? "bg-warning" : "bg-muted-foreground/50"}`} />
-                      {r.status}
-                    </span>
+                    {(() => {
+                      const lastSeen = r.last_seen_at ? new Date(r.last_seen_at).getTime() : 0;
+                      const fresh = Date.now() - lastSeen < 90_000; // 90s
+                      const isOnline = r.status === "online" && fresh;
+                      return (
+                        <span className="inline-flex items-center gap-1.5 text-xs">
+                          <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? "bg-success" : "bg-muted-foreground/50"}`} />
+                          {isOnline ? "online" : "offline"}
+                        </span>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-0.5">
@@ -163,8 +170,22 @@ function TechniciansPage() {
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Desempenho" onClick={() => setStatsFor(r)}><BarChart3 className="h-4 w-4" /></Button>
                       {isAdmin && (
                         <>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar" onClick={() => setEditFor(r)}><Pencil className="h-4 w-4" /></Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" title="Excluir" onClick={() => setDeleteFor(r)}><Trash2 className="h-4 w-4" /></Button>
+                          <Button
+                            size="icon" variant="ghost"
+                            className={cn("h-8 w-8", !isSuperAdmin && "pointer-events-none opacity-40")}
+                            title={isSuperAdmin ? "Editar" : "Apenas o superadministrador pode executar esta ação"}
+                            onClick={() => isSuperAdmin && setEditFor(r)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon" variant="ghost"
+                            className={cn("h-8 w-8 text-destructive hover:text-destructive", !isSuperAdmin && "pointer-events-none opacity-40")}
+                            title={isSuperAdmin ? "Excluir" : "Apenas o superadministrador pode executar esta ação"}
+                            onClick={() => isSuperAdmin && setDeleteFor(r)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </>
                       )}
                     </div>
