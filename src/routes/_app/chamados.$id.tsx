@@ -4,6 +4,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   ArrowLeft, Clock, MapPin, User, Phone, Wrench, Calendar, Upload,
   Play, Pause, CheckCircle2, Loader2, Image as ImageIcon, FileText, X,
+  Plus, Trash2, Star,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,10 +21,16 @@ import {
   Tabs, TabsContent, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { StarRating } from "@/components/star-rating";
 
 export const Route = createFileRoute("/_app/chamados/$id")({ component: TicketDetailPage });
+
 
 const STATUS_LABEL: Record<string, string> = {
   open: "Aberto", in_progress: "Em andamento", waiting_part: "Aguardando peça",
