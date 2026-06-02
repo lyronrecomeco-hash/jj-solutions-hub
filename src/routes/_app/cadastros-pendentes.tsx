@@ -109,7 +109,7 @@ function PendingPage() {
         </div>
       </div>
 
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:max-w-3xl">
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Pendentes" value={counts.pending} tone="warning" />
         <Stat label="Em espera" value={counts.on_hold} tone="muted" />
         <Stat label="Aprovados" value={counts.approved} tone="success" />
@@ -238,13 +238,13 @@ function PendingPage() {
 
 function Stat({ label, value, tone }: { label: string; value: number; tone: "warning" | "success" | "destructive" | "muted" }) {
   const cls = {
-    warning: "text-warning-foreground bg-warning/15",
-    success: "text-success bg-success/10",
-    destructive: "text-destructive bg-destructive/10",
-    muted: "text-muted-foreground bg-surface-muted",
+    warning: "border-warning/40 bg-warning/15 text-warning-foreground dark:bg-warning/10 dark:text-warning",
+    success: "border-success/30 bg-success/10 text-success",
+    destructive: "border-destructive/30 bg-destructive/10 text-destructive",
+    muted: "border-border bg-surface-muted text-foreground",
   }[tone];
   return (
-    <div className={`rounded-xl border border-border p-3 ${cls}`}>
+    <div className={`rounded-xl border p-3 ${cls}`}>
       <div className="text-[10px] font-semibold uppercase tracking-wider opacity-80">{label}</div>
       <div className="mt-0.5 font-display text-xl font-semibold">{value}</div>
     </div>

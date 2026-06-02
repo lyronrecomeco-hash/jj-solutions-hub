@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Search, IdCard, Pencil, Trash2, Eye, BarChart3, Mail, Phone, Loader2 } from "lucide-react";
+import { Plus, Search, IdCard, Pencil, Trash2, Eye, BarChart3, Mail, Phone, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CrachaModal } from "@/components/cracha-modal";
 import { TechnicianFormSheet } from "@/components/technician-form-sheet";
 import { TechnicianViewSheet } from "@/components/technician-view-sheet";
+import { TrackingModal } from "@/components/tracking-modal";
 import { deleteTechnician, updateTechnician } from "@/lib/api/technicians.functions";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -48,6 +49,7 @@ function TechniciansPage() {
   const [editFor, setEditFor] = useState<Row | null>(null);
   const [statsFor, setStatsFor] = useState<Row | null>(null);
   const [deleteFor, setDeleteFor] = useState<Row | null>(null);
+  const [trackFor, setTrackFor] = useState<Row | null>(null);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["technicians"],
@@ -141,6 +143,7 @@ function TechniciansPage() {
                     <div className="flex items-center justify-end gap-0.5">
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Ver perfil" onClick={() => setViewFor(r)}><Eye className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Ver crachá" onClick={() => setBadgeFor(r)}><IdCard className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Monitorar localização" onClick={() => setTrackFor(r)}><MapPin className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Desempenho" onClick={() => setStatsFor(r)}><BarChart3 className="h-4 w-4" /></Button>
                       {isAdmin && (
                         <>
@@ -160,6 +163,7 @@ function TechniciansPage() {
       <TechnicianFormSheet open={addOpen} onOpenChange={setAddOpen} />
       <TechnicianViewSheet tech={viewFor} open={!!viewFor} onOpenChange={(o) => !o && setViewFor(null)} />
       <CrachaModal tech={badgeFor} open={!!badgeFor} onOpenChange={(o) => !o && setBadgeFor(null)} />
+      <TrackingModal tech={trackFor ? { id: trackFor.id, full_name: trackFor.full_name } : null} open={!!trackFor} onOpenChange={(o) => !o && setTrackFor(null)} />
       <EditDialog row={editFor} onClose={() => setEditFor(null)} onSaved={() => qc.invalidateQueries({ queryKey: ["technicians"] })} />
       <StatsDialog row={statsFor} onClose={() => setStatsFor(null)} />
 
@@ -238,28 +242,48 @@ function EditDialog({ row, onClose, onSaved }: { row: Row | null; onClose: () =>
 
 function StatsDialog({ row, onClose }: { row: Row | null; onClose: () => void }) {
   const open = !!row;
-  const data = [
-    { dia: "Seg", resolvidos: 4 }, { dia: "Ter", resolvidos: 7 }, { dia: "Qua", resolvidos: 3 },
-    { dia: "Qui", resolvidos: 6 }, { dia: "Sex", resolvidos: 9 }, { dia: "Sáb", resolvidos: 2 },
-  ];
+  const { data: stats } = useQuery({
+    queryKey: ["tech-stats", row?.id],
+    enabled: !!row,
+    queryFn: async () => {
+      const since = new Date(Date.now() - 7 * 86400000).toISOString();
+      const { data } = await supabase
+        .from("tickets")
+        .select("status, created_at")
+        .eq("assigned_to", row!.id)
+        .gte("created_at", since);
+      const rows = data ?? [];
+      const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+      const buckets: Record<string, number> = Object.fromEntries(days.map((d) => [d, 0]));
+      rows.filter((r: any) => r.status === "resolved").forEach((r: any) => {
+        const d = new Date(r.created_at);
+        buckets[days[d.getDay()]] = (buckets[days[d.getDay()]] ?? 0) + 1;
+      });
+      return {
+        chart: days.map((d) => ({ dia: d, resolvidos: buckets[d] })),
+        total: rows.length,
+        resolvidos: rows.filter((r: any) => r.status === "resolved").length,
+      };
+    },
+  });
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Desempenho · {row?.full_name}</DialogTitle>
-          <DialogDescription>Resumo semanal de chamados concluídos.</DialogDescription>
+          <DialogDescription>Resumo dos últimos 7 dias.</DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-3 gap-3 py-2">
-          <Stat label="Chamados (semana)" value="31" />
-          <Stat label="Tempo médio" value="2h 14m" />
-          <Stat label="Satisfação" value="4.8 / 5" />
+          <Stat label="Chamados (7 dias)" value={String(stats?.total ?? 0)} />
+          <Stat label="Resolvidos" value={String(stats?.resolvidos ?? 0)} />
+          <Stat label="Taxa" value={stats && stats.total ? `${Math.round((stats.resolvidos / stats.total) * 100)}%` : "—"} />
         </div>
         <div className="rounded-xl border border-border bg-surface p-3">
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={data}>
+            <BarChart data={stats?.chart ?? []}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
               <XAxis dataKey="dia" stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
               <Tooltip cursor={{ fill: "var(--color-accent)", opacity: 0.35, radius: 6 }}
                 contentStyle={{ background: "var(--color-popover)", color: "var(--color-popover-foreground)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }} />
               <Bar dataKey="resolvidos" fill="var(--color-chart-1)" radius={[6, 6, 0, 0]} maxBarSize={36} />

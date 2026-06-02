@@ -78,8 +78,16 @@ function MonitoringPage() {
           {loading ? (
             <div className="grid h-full place-items-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
           ) : (
-            <MapContainer center={center} zoom={locs.length ? 12 : 4} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
+            <MapContainer center={center} zoom={locs.length ? 13 : 4} style={{ height: "100%", width: "100%" }} scrollWheelZoom zoomControl={false}>
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png"
+                attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap'
+                subdomains="abcd" maxZoom={20}
+              />
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"
+                subdomains="abcd" maxZoom={20}
+              />
               {locs.map((l) => {
                 const t = techsById[l.user_id];
                 const initials = (t?.full_name || "?").split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();

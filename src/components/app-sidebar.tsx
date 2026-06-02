@@ -1,7 +1,7 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard, Ticket, Users, Building2, BarChart3, MessageSquare,
-  Settings, ScrollText, LogOut, IdCard, ClipboardList, UserCog, MapPin,
+  Settings, ScrollText, LogOut, IdCard, ClipboardList, UserCog,
 } from "lucide-react";
 
 import {
@@ -27,7 +27,6 @@ const techManagementItems: NavItem[] = [
   { title: "Equipe Técnica", url: "/tecnicos", icon: Users },
   { title: "Cadastros Pendentes", url: "/cadastros-pendentes", icon: ClipboardList },
   { title: "Atribuição", url: "/atribuicao", icon: UserCog },
-  { title: "Monitoramento", url: "/monitoramento", icon: MapPin },
 ];
 
 const customerItems: NavItem[] = [
