@@ -59,8 +59,16 @@ export function TrackingModal({ tech, open, onOpenChange }: { tech: Tech | null;
               Sem localização registrada. O técnico precisa estar logado e ter concedido permissão de localização.
             </div>
           ) : (
-            <MapContainer center={[loc.lat, loc.lng]} zoom={14} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
+            <MapContainer center={[loc.lat, loc.lng]} zoom={15} style={{ height: "100%", width: "100%" }} scrollWheelZoom zoomControl={false}>
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png"
+                attribution='&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap'
+                subdomains="abcd" maxZoom={20}
+              />
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"
+                subdomains="abcd" maxZoom={20}
+              />
               <Recenter pos={[loc.lat, loc.lng]} />
               <Marker position={[loc.lat, loc.lng]} icon={techIcon}>
                 <Popup>
