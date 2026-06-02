@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { Shield, ShieldCheck, ShieldAlert, UserCog, Search, Loader2, Plus, Trash2 } from "lucide-react";
+import { Shield, ShieldCheck, ShieldAlert, UserCog, Search, Loader2, Plus, Trash2, Eye, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,11 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { StaffCreateSheet } from "@/components/staff-create-sheet";
 
@@ -34,6 +39,9 @@ function AdminsPage() {
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [removing, setRemoving] = useState<{ user_id: string; role: AppRole; name: string } | null>(null);
+  const [viewing, setViewing] = useState<{ profile: any; roles: AppRole[] } | null>(null);
+  const [editing, setEditing] = useState<{ user_id: string; profile: any; currentRoles: AppRole[] } | null>(null);
+  const [editRole, setEditRole] = useState<AppRole>("tech");
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["staff-list"],
