@@ -817,6 +817,7 @@ export type Database = {
         | "partially_resolved"
         | "not_resolved"
         | "cancelled"
+        | "closed"
       user_status: "online" | "offline" | "busy" | "away"
     }
     CompositeTypes: {
@@ -958,6 +959,7 @@ export const Constants = {
         "partially_resolved",
         "not_resolved",
         "cancelled",
+        "closed",
       ],
       user_status: ["online", "offline", "busy", "away"],
     },
