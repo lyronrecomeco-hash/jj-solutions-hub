@@ -48,7 +48,7 @@ export function useNotifications() {
             toast(n.title, {
               description: n.body ?? undefined,
               duration: 10_000,
-              action: n.link ? { label: "Abrir", onClick: () => { window.location.href = n.link!; } } : undefined,
+              action: n.link ? { label: "Abrir", onClick: () => { window.history.pushState({}, "", n.link!); window.dispatchEvent(new PopStateEvent("popstate")); } } : undefined,
             });
           }
         },

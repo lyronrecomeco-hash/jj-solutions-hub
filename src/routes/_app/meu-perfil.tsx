@@ -129,7 +129,7 @@ function MyProfilePage() {
   const currentPhoto = photoPreview ?? (profile as any).photo_url ?? profile.avatar_url ?? null;
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8 max-w-4xl">
+    <div className="w-full max-w-6xl px-3 py-4 sm:px-6 lg:px-8 lg:py-6">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Conta</p>
@@ -141,16 +141,16 @@ function MyProfilePage() {
         </Button>
       </header>
 
-      <div className="mb-5 flex items-center gap-5 rounded-xl border border-border bg-surface p-5 shadow-soft">
-        <div className="grid h-24 w-24 place-items-center overflow-hidden rounded-full bg-primary/10 text-primary ring-2 ring-border">
+      <div className="mb-5 flex flex-col gap-4 rounded-xl border border-border bg-surface p-4 shadow-soft sm:flex-row sm:items-center sm:gap-5 sm:p-5">
+        <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-primary ring-2 ring-border sm:h-24 sm:w-24">
           {currentPhoto
             ? <img src={currentPhoto} alt="" className="h-full w-full object-cover" />
             : <UserIcon className="h-10 w-10" />}
         </div>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div className="font-display text-lg font-semibold">{form.full_name || "—"}</div>
           <div className="text-xs text-muted-foreground">{form.job_title || "Técnico"} · {form.specialty || "—"}</div>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickFile} />
             <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
               <Upload className="h-3.5 w-3.5" /> Trocar foto
@@ -164,7 +164,7 @@ function MyProfilePage() {
         </div>
       </div>
 
-      <div className="grid gap-4 rounded-xl border border-border bg-surface p-5 shadow-soft sm:grid-cols-2">
+      <div className="grid gap-4 rounded-xl border border-border bg-surface p-4 shadow-soft sm:grid-cols-2 sm:p-5">
         <Field label="Nome completo" v={form.full_name} on={(v) => setForm({ ...form, full_name: v })} full />
         <Field label="Telefone" v={form.phone} on={(v) => setForm({ ...form, phone: v })} />
         <Field label="Cargo" v={form.job_title} on={(v) => setForm({ ...form, job_title: v })} />

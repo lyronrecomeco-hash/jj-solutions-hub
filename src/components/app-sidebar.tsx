@@ -17,12 +17,12 @@ type NavItem = { title: string; url: string; icon: React.ComponentType<{ classNa
 const operationItems: NavItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, key: "dashboard" },
   { title: "Chamados", url: "/chamados", icon: Ticket, key: "chamados" },
+  { title: "Mensagens", url: "/mensagens", icon: MessageSquare, key: "mensagens" },
 ];
 
 const techSelfItems: NavItem[] = [
   { title: "Meu Perfil", url: "/meu-perfil", icon: UserCircle, key: "meu-perfil" },
   { title: "Meus Dados", url: "/meus-dados", icon: IdCard, key: "meus-dados" },
-  { title: "Mensagens", url: "/mensagens", icon: MessageSquare, key: "mensagens" },
 ];
 
 const techManagementItems: NavItem[] = [
@@ -37,10 +37,6 @@ const customerItems: NavItem[] = [
 
 const analysisItems: NavItem[] = [
   { title: "Relatórios", url: "/relatorios", icon: BarChart3, key: "relatorios" },
-];
-
-const communicationItems: NavItem[] = [
-  { title: "Mensagens", url: "/mensagens", icon: MessageSquare, key: "mensagens" },
 ];
 
 const systemItems: NavItem[] = [
@@ -97,7 +93,6 @@ export function AppSidebar() {
         {!isStaff && renderGroup("Meu Espaço", techSelfItems)}
         {isStaff && renderGroup("Gestão de Técnicos", techManagementItems)}
         {isStaff && renderGroup("Clientes", customerItems)}
-        {isStaff && renderGroup("Comunicação", communicationItems)}
         {isStaff && renderGroup("Análise", analysisItems)}
         {isAdmin && renderGroup("Sistema", systemItems)}
       </SidebarContent>

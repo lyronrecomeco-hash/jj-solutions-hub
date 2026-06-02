@@ -23,7 +23,7 @@ Plano de finalização sênior — dividido em 7 fases. Tudo sincronizado via Re
 
 ## Fase 3 — Unificar "Atribuição" dentro de "Chamados" + modal de atribuir
 
-- Remover item "Atribuição" do sidebar; manter rota `/atribuicao` redirecionando para `/chamados?tab=unassigned`.
+- Manter item e rota "Atribuição" no sidebar, sem remover nada; a mesma fila de chamados sem técnico também aparece dentro de `Chamados`.
 - Em `chamados.tsx`:
   - Nova aba/filtro "Sem responsável" (status open + assigned_to null).
   - **Card do Kanban:** o ícone "três pontinhos" abre um `Popover` (estilo do print enviado) com as ações:
@@ -96,5 +96,5 @@ Auditoria já feita no painel. Pendências encontradas e ações:
 - `src/routes/__root.tsx` (onAuthStateChange só em SIGNED_IN/OUT)
 - `src/routes/_app.tsx` (busca global ligada)
 
-### Sem alterações de banco
-Tudo usa tabelas e buckets existentes. Nenhuma migração necessária.
+### Correção de banco aplicada
+- Adicionadas relações seguras entre chamados, clientes e perfis para evitar erro de schema cache ao criar/listar chamados com técnico atribuído.

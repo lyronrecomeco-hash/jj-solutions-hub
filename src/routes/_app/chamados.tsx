@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Plus, Search, Ticket, AlertTriangle, Clock, CheckCircle2, Filter, Loader2, ArrowRight,
-  Image as ImageIcon, LayoutList, KanbanSquare, MoreHorizontal, UserPlus, ArrowRightCircle,
-  CheckCircle, XCircle, ExternalLink,
+  Image as ImageIcon, LayoutList, KanbanSquare, UserPlus, ArrowRightCircle,
+  CheckCircle, XCircle, ExternalLink, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -69,8 +69,27 @@ const PRIORITY: Record<Ticket["priority"], { label: string; cls: string; dot: st
   low:      { label: "Baixa",   cls: "border-border bg-muted text-muted-foreground", dot: "bg-muted-foreground/60" },
 };
 
+const TICKET_SELECT = "id, ticket_number, title, description, status, priority, client_id, contact_name, contact_phone, assigned_to, created_at, deadline";
+
+async function hydrateTickets(rows: any[]): Promise<Ticket[]> {
+  const clientIds = [...new Set(rows.map((r) => r.client_id).filter(Boolean))];
+  const assigneeIds = [...new Set(rows.map((r) => r.assigned_to).filter(Boolean))];
+  const [clientsRes, profilesRes] = await Promise.all([
+    clientIds.length ? supabase.from("clients").select("id, company").in("id", clientIds) : Promise.resolve({ data: [] }),
+    assigneeIds.length ? supabase.from("profiles").select("id, full_name").in("id", assigneeIds) : Promise.resolve({ data: [] }),
+  ]);
+  const clients = new Map((clientsRes.data ?? []).map((c: any) => [c.id, { company: c.company }]));
+  const profiles = new Map((profilesRes.data ?? []).map((p: any) => [p.id, { full_name: p.full_name }]));
+  return rows.map((r) => ({
+    ...r,
+    clients: r.client_id ? clients.get(r.client_id) ?? null : null,
+    profiles: r.assigned_to ? profiles.get(r.assigned_to) ?? null : null,
+  })) as Ticket[];
+}
+
 function TicketsPage() {
   const qc = useQueryClient();
+  const { isStaff } = useAuth();
   const [q, setQ] = useState("");
   const [tab, setTab] = useState("all");
   const [priority, setPriority] = useState<string>("all");
@@ -80,13 +99,15 @@ function TicketsPage() {
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ["tickets-list"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("tickets")
-        .select("id, ticket_number, title, description, status, priority, client_id, contact_name, contact_phone, assigned_to, created_at, deadline, clients(company), profiles:assigned_to(full_name)")
+        .select(TICKET_SELECT)
         .order("created_at", { ascending: false })
         .limit(200);
-      return (data ?? []) as unknown as Ticket[];
+      if (error) throw new Error(error.message);
+      return hydrateTickets(data ?? []);
     },
+    staleTime: 30_000,
   });
 
   // Realtime: refetch on any ticket change
@@ -116,6 +137,7 @@ function TicketsPage() {
     resolved: tickets.filter((t) => t.status === "resolved").length,
     critical: tickets.filter((t) => t.priority === "critical").length,
   };
+  const unassignedTickets = tickets.filter((t) => !t.assigned_to && !["cancelled", "closed"].includes(t.status));
 
   return (
     <div className="w-full space-y-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
@@ -134,6 +156,8 @@ function TicketsPage() {
         <Mini label="Resolvidos" value={counts.resolved} icon={CheckCircle2} tone="success" />
         <Mini label="Críticos" value={counts.critical} icon={AlertTriangle} tone="destructive" />
       </div>
+
+      {isStaff && <UnassignedStrip tickets={unassignedTickets} />}
 
       <div className="rounded-xl border border-border bg-surface shadow-soft">
         <div className="flex flex-wrap items-center gap-3 border-b border-border p-3">
@@ -155,7 +179,7 @@ function TicketsPage() {
               </TabsList>
             </Tabs>
           )}
-          <div className="relative w-64">
+          <div className="relative w-full sm:w-64">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar chamado…" className="h-9 pl-9 bg-surface-muted" />
           </div>
@@ -215,6 +239,45 @@ function TicketRow({ t }: { t: Ticket }) {
         <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
       </Link>
     </li>
+  );
+}
+
+function UnassignedStrip({ tickets }: { tickets: Ticket[] }) {
+  const [target, setTarget] = useState<Ticket | null>(null);
+  if (tickets.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-border bg-surface shadow-soft">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
+        <div>
+          <h2 className="text-sm font-semibold">Chamados a atribuir</h2>
+          <p className="text-xs text-muted-foreground">Mesma fila da aba Atribuição, sincronizada aqui em Chamados.</p>
+        </div>
+        <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300">{tickets.length} sem técnico</Badge>
+      </div>
+      <div className="grid gap-2 p-3 md:grid-cols-2 xl:grid-cols-3">
+        {tickets.slice(0, 6).map((t) => (
+          <div key={t.id} className="flex min-w-0 items-center gap-3 rounded-lg border border-border bg-surface-muted/35 p-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[11px] font-medium text-muted-foreground">{t.ticket_number}</span>
+                <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px]", PRIORITY[t.priority].cls)}>{PRIORITY[t.priority].label}</Badge>
+              </div>
+              <div className="mt-0.5 truncate text-sm font-semibold">{t.title}</div>
+              <div className="truncate text-xs text-muted-foreground">{t.clients?.company ?? t.contact_name ?? "Sem cliente"}</div>
+            </div>
+            <Button size="sm" onClick={() => setTarget(t)}>
+              <UserPlus className="h-3.5 w-3.5" /> Atribuir
+            </Button>
+          </div>
+        ))}
+      </div>
+      <AssignTechDialog
+        ticketId={target?.id ?? null}
+        ticketNumber={target?.ticket_number}
+        open={!!target}
+        onOpenChange={(o) => !o && setTarget(null)}
+      />
+    </div>
   );
 }
 
@@ -403,10 +466,10 @@ function KanbanCard({ t, dragging }: { t: Ticket; dragging?: boolean }) {
               className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-md text-muted-foreground opacity-0 transition hover:bg-surface-muted hover:text-foreground group-hover:opacity-100 data-[state=open]:opacity-100"
               aria-label="Ações"
             >
-              <MoreHorizontal className="h-3.5 w-3.5" />
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", menuOpen && "rotate-180")} />
             </button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-56 p-1">
+          <PopoverContent align="end" sideOffset={8} className="w-60 rounded-lg border-border bg-popover p-1.5 shadow-floating">
             <Link
               to="/chamados/$id"
               params={{ id: t.id }}
@@ -538,10 +601,12 @@ function NewTicketSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (
           assigned_to: form.assigned_to || null,
           created_by: user?.id ?? null,
         })
-        .select("id, ticket_number, title, description, status, priority, client_id, contact_name, contact_phone, assigned_to, created_at, deadline, clients(company), profiles:assigned_to(full_name)")
-        .single();
+        .select(TICKET_SELECT)
+        .maybeSingle();
       if (error) throw new Error(error.message);
-      return data as any;
+      if (!data) throw new Error("Chamado criado, mas a linha não retornou do banco.");
+      const [created] = await hydrateTickets([data]);
+      return created;
     },
     onSuccess: (created) => {
       toast.success("Chamado criado");

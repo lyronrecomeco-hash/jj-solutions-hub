@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Search, Paperclip, Send, Image as ImageIcon, Video, Loader2,
-  MessageSquare, Check, CheckCheck, Eye,
+  MessageSquare, Check, CheckCheck, Eye, ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const Route = createFileRoute("/_app/mensagens")({ component: MessagesPage });
 
@@ -28,6 +29,7 @@ type Summary = { last: Msg | null; unread: number };
 
 function MessagesPage() {
   const { user, isStaff } = useAuth();
+  const isMobile = useIsMobile();
   const [q, setQ] = useState("");
   const [chatFor, setChatFor] = useState<Tech | null>(null);
 
@@ -87,7 +89,7 @@ function MessagesPage() {
   if (!isStaff) {
     // Técnico vê apenas o próprio mural em tela cheia.
     return (
-      <div className="px-4 py-6 sm:px-6 lg:px-8">
+      <div className="w-full px-3 py-4 sm:px-6 lg:px-8 lg:py-6">
         <div className="mb-4 flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary"><MessageSquare className="h-5 w-5" /></div>
           <div>
@@ -102,8 +104,29 @@ function MessagesPage() {
     );
   }
 
+  if (isMobile && chatFor) {
+    return (
+      <div className="flex h-[calc(100svh-3.5rem)] flex-col bg-background">
+        <div className="flex items-center gap-3 border-b border-border px-3 py-3">
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setChatFor(null)}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <Avatar className="h-9 w-9">
+            {chatFor.photo_url && <img src={chatFor.photo_url} alt="" className="h-full w-full object-cover" />}
+            <AvatarFallback className="bg-primary text-xs font-semibold text-primary-foreground">{chatFor.full_name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold">{chatFor.full_name}</div>
+            <div className="truncate text-xs text-muted-foreground">{chatFor.specialty ?? "Técnico"}</div>
+          </div>
+        </div>
+        <ChatPanel tech={chatFor} mobile />
+      </div>
+    );
+  }
+
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8">
+    <div className="w-full px-3 py-4 sm:px-6 lg:px-8 lg:py-6">
       <div className="mb-6 flex items-center gap-3">
         <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary"><MessageSquare className="h-5 w-5" /></div>
         <div>
@@ -193,7 +216,7 @@ function MessagesPage() {
   );
 }
 
-function ChatPanel({ tech, embedded }: { tech: Tech | null; embedded?: boolean }) {
+function ChatPanel({ tech, embedded, mobile }: { tech: Tech | null; embedded?: boolean; mobile?: boolean }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [text, setText] = useState("");
@@ -260,11 +283,11 @@ function ChatPanel({ tech, embedded }: { tech: Tech | null; embedded?: boolean }
     onError: (e: any) => toast.error("Falha ao enviar", { description: e?.message }),
   });
 
-  const heightClass = embedded ? "h-[calc(100vh-16rem)]" : "h-[60vh]";
+  const heightClass = mobile ? "h-full min-h-0" : embedded ? "h-[calc(100svh-14rem)] min-h-[420px]" : "h-[60vh]";
 
   return (
     <div className={`flex flex-col ${heightClass}`}>
-      <div ref={scrollRef} className="flex-1 overflow-y-auto bg-surface-muted/40 p-5">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto bg-surface-muted/40 p-3 sm:p-5">
         {!tech ? (
           <div className="grid h-full place-items-center text-sm text-muted-foreground">Selecione um técnico.</div>
         ) : isLoading ? (
@@ -277,7 +300,7 @@ function ChatPanel({ tech, embedded }: { tech: Tech | null; embedded?: boolean }
               const mine = m.author_id === user?.id;
               return (
                 <li key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[78%] rounded-2xl border px-4 py-2.5 shadow-soft ${mine ? "border-primary/20 bg-primary text-primary-foreground" : "border-border bg-surface"}`}>
+                  <div className={`max-w-[86%] rounded-2xl border px-3 py-2.5 shadow-soft sm:max-w-[78%] sm:px-4 ${mine ? "border-primary/20 bg-primary text-primary-foreground" : "border-border bg-surface"}`}>
                     {m.media_url && m.media_type === "image" && <img src={m.media_url} alt="" className="mb-2 max-h-72 rounded-lg" />}
                     {m.media_url && m.media_type === "video" && <video src={m.media_url} controls className="mb-2 max-h-72 rounded-lg" />}
                     {m.body && <div className="whitespace-pre-wrap text-sm">{m.body}</div>}

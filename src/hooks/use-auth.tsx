@@ -41,9 +41,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let currentUid: string | null = null;
     const { data: sub } = supabase.auth.onAuthStateChange((evt, s) => {
+      const nextUid = s?.user?.id ?? null;
+      if (evt === "TOKEN_REFRESHED" && nextUid === currentUid) {
+        return;
+      }
       setSession(s);
       setUser(s?.user ?? null);
-      const nextUid = s?.user?.id ?? null;
       if (!s?.user) {
         currentUid = null;
         setProfile(null);
