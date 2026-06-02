@@ -1,7 +1,6 @@
 import { forwardRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { ShieldCheck } from "lucide-react";
-import { JJLogo } from "@/components/jj-logo";
 
 export type Tech = {
   id: string;
@@ -35,41 +34,41 @@ export const CrachaCard = forwardRef<HTMLDivElement, Props>(({ tech, className }
   return (
     <div
       ref={ref}
-      className={`relative w-[300px] overflow-hidden rounded-[20px] bg-white shadow-2xl ring-1 ring-black/10 ${className ?? ""}`}
+      className={`relative w-[300px] overflow-hidden rounded-[18px] bg-white shadow-2xl ring-1 ring-black/10 ${className ?? ""}`}
       style={{ aspectRatio: "60 / 95", fontFamily: "Inter, system-ui, sans-serif", color: "#0f172a" }}
     >
-      {/* Lanyard hole */}
-      <div
-        className="pointer-events-none absolute left-1/2 top-2.5 h-3 w-14 -translate-x-1/2 rounded-full"
-        style={{ background: "#f1f5f9", border: "1px solid #cbd5e1" }}
-      />
-
       {/* Top brand band */}
       <div
-        className="relative px-4 pb-3 pt-6 text-white"
+        className="relative px-4 pb-3 pt-4 text-white"
         style={{
-          height: 140,
-          background: "linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 60%, #0f172a 100%)",
+          height: 132,
+          background: "linear-gradient(145deg, #0f4c8f 0%, #143a79 42%, #24275f 100%)",
         }}
       >
-        <div className="flex items-center justify-between">
-          <JJLogo />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-30"
+          style={{
+            backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.15) 0, rgba(255,255,255,0.15) 1px, transparent 1px, transparent 7px)",
+          }}
+        />
+        <div className="relative z-10 flex items-start justify-between">
+          <div className="flex items-center gap-2">
+            <span className="grid h-9 w-9 place-items-center rounded-lg text-[12px] font-extrabold text-white" style={{ background: "#43a7f5" }}>JJ</span>
+            <span className="leading-tight">
+              <span className="block text-[13px] font-extrabold tracking-tight">JJ Informática</span>
+              <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-white/65">Service Desk</span>
+            </span>
+          </div>
           <span
-            className="rounded-full px-2 py-0.5 text-[8px] font-bold tracking-[0.15em] text-white"
+            className="rounded-full px-2 py-0.5 text-[8px] font-bold tracking-[0.18em] text-white"
             style={{ background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.35)" }}
           >
             SERVICE DESK
           </span>
         </div>
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-full"
-          style={{
-            background: "radial-gradient(ellipse at top right, rgba(96,165,250,0.25), transparent 60%)",
-          }}
-        />
-        <div
-          className="absolute -bottom-12 left-1/2 h-24 w-24 -translate-x-1/2 overflow-hidden rounded-full bg-slate-200"
-          style={{ border: "4px solid #ffffff", boxShadow: "0 6px 14px rgba(0,0,0,0.22)" }}
+          className="absolute -bottom-11 left-1/2 h-[92px] w-[92px] -translate-x-1/2 overflow-hidden rounded-full bg-slate-200"
+          style={{ border: "4px solid #ffffff", boxShadow: "0 8px 14px rgba(15,23,42,0.28)" }}
         >
           {tech.photo_url ? (
             <img
@@ -91,7 +90,7 @@ export const CrachaCard = forwardRef<HTMLDivElement, Props>(({ tech, className }
         <span
           className="absolute"
           style={{
-            bottom: -6, left: "calc(50% + 28px)",
+            bottom: -2, left: "calc(50% + 28px)",
             width: 14, height: 14, borderRadius: 9999,
             background: "#22c55e", border: "3px solid #ffffff",
             boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
@@ -100,8 +99,8 @@ export const CrachaCard = forwardRef<HTMLDivElement, Props>(({ tech, className }
       </div>
 
       {/* Body */}
-      <div className="px-4 pb-4 pt-16 text-center">
-        <div className="text-[16px] font-bold leading-tight" style={{ color: "#0f172a" }}>
+      <div className="px-4 pb-3 pt-14 text-center">
+        <div className="text-[15px] font-extrabold leading-tight" style={{ color: "#0f172a" }}>
           {tech.full_name}
         </div>
         <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.16em]" style={{ color: "#64748b" }}>
@@ -120,8 +119,8 @@ export const CrachaCard = forwardRef<HTMLDivElement, Props>(({ tech, className }
           </span>
         </div>
 
-        <div className="mt-3 space-y-0.5 text-[11px]" style={{ color: "#475569" }}>
-          {tech.job_title && <div className="font-semibold" style={{ color: "#1e293b" }}>{tech.job_title}</div>}
+        <div className="mt-3 min-h-[34px] space-y-0.5 text-[10px]" style={{ color: "#475569" }}>
+          {tech.job_title && <div className="font-bold" style={{ color: "#475569" }}>{tech.job_title}</div>}
           {tech.specialty && <div>{tech.specialty}</div>}
         </div>
 
@@ -132,14 +131,14 @@ export const CrachaCard = forwardRef<HTMLDivElement, Props>(({ tech, className }
           Mat. {tech.registration_code ?? "—"}
         </div>
 
-        <div className="mt-3 flex justify-center">
+        <div className="mt-2.5 flex justify-center">
           <div className="rounded-md bg-white p-1.5" style={{ border: "1px solid #e2e8f0" }}>
-            <QRCodeSVG value={qrValue} size={70} level="H" />
+            <QRCodeSVG value={qrValue} size={64} level="H" />
           </div>
         </div>
 
         <div
-          className="mt-2 flex items-center justify-center gap-1 text-[8px] font-semibold uppercase tracking-wider"
+          className="mt-1.5 flex items-center justify-center gap-1 text-[7px] font-semibold uppercase tracking-wider"
           style={{ color: "#64748b" }}
         >
           <ShieldCheck className="h-3 w-3" /> Identidade validada
