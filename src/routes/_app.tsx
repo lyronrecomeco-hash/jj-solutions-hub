@@ -10,6 +10,8 @@ import { NotificationsBell } from "@/components/notifications-bell";
 import { useAuth } from "@/hooks/use-auth";
 import { useGeolocationTracker } from "@/hooks/use-geolocation-tracker";
 import { useAntiTamper } from "@/hooks/use-anti-tamper";
+import { usePresence } from "@/hooks/use-presence";
+import { WelcomeTour } from "@/components/welcome-tour";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -21,6 +23,7 @@ function AppLayout() {
   const navigate = useNavigate();
   useGeolocationTracker();
   useAntiTamper(true);
+  usePresence();
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login", replace: true });
@@ -66,6 +69,7 @@ function AppLayout() {
         <main className="flex-1 overflow-x-hidden">
           <Outlet />
         </main>
+        <WelcomeTour />
       </SidebarInset>
     </SidebarProvider>
   );
