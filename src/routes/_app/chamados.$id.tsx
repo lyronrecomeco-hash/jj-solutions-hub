@@ -249,6 +249,16 @@ function TicketDetailPage() {
           </div>
         </aside>
       </div>
+
+      <CloseTicketDialog
+        open={closeOpen}
+        onOpenChange={setCloseOpen}
+        ticketId={id}
+        outcome={closeOutcome}
+        onOutcomeChange={setCloseOutcome}
+        onConfirm={() => setStatus.mutate(closeOutcome)}
+        confirming={setStatus.isPending}
+      />
     </div>
   );
 }
