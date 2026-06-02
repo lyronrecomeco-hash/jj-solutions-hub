@@ -34,6 +34,8 @@ const PRIORITY_STYLE: Record<string, string> = {
 };
 
 function DashboardPage() {
+  const [range, setRange] = useState<"today" | "7d" | "30d">("30d");
+
   const { data: tickets } = useQuery({
     queryKey: ["dashboard-tickets"],
     queryFn: async () => {
@@ -41,7 +43,7 @@ function DashboardPage() {
         .from("tickets")
         .select("id, ticket_number, title, status, priority, created_at, closed_at, deadline, contact_name, client_id, assigned_to, clients(company)")
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(500);
       return data ?? [];
     },
   });
@@ -57,10 +59,26 @@ function DashboardPage() {
     },
   });
 
-  const counts = aggregateCounts(tickets ?? []);
-  const statusData = buildStatusData(tickets ?? []);
-  const productivityData = buildProductivityData(tickets ?? [], technicians ?? []);
-  const trendData = buildTrendData(tickets ?? []);
+  const rangeStart = useMemo(() => {
+    const d = new Date();
+    if (range === "today") d.setHours(0, 0, 0, 0);
+    else if (range === "7d") { d.setDate(d.getDate() - 7); d.setHours(0, 0, 0, 0); }
+    else { d.setDate(d.getDate() - 30); d.setHours(0, 0, 0, 0); }
+    return d;
+  }, [range]);
+
+  const filteredTickets = useMemo(
+    () => (tickets ?? []).filter((t: any) => new Date(t.created_at) >= rangeStart),
+    [tickets, rangeStart]
+  );
+  const trendDays = range === "today" ? 1 : range === "7d" ? 7 : 30;
+
+  const counts = aggregateCounts(filteredTickets);
+  const statusData = buildStatusData(filteredTickets);
+  const productivityData = buildProductivityData(filteredTickets, technicians ?? []);
+  const trendData = buildTrendData(filteredTickets, trendDays);
+
+  const rangeLabel = range === "today" ? "Hoje" : range === "7d" ? "Últimos 7 dias" : "Últimos 30 dias";
 
   return (
     <div className="w-full space-y-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
@@ -69,13 +87,13 @@ function DashboardPage() {
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Visão geral</p>
           <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Dashboard operacional</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Acompanhe o desempenho do service desk em tempo real.
+            Acompanhe o desempenho do service desk em tempo real · {rangeLabel}.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">Hoje</Button>
-          <Button variant="outline" size="sm">7 dias</Button>
-          <Button variant="default" size="sm">30 dias</Button>
+          <Button variant={range === "today" ? "default" : "outline"} size="sm" onClick={() => setRange("today")}>Hoje</Button>
+          <Button variant={range === "7d" ? "default" : "outline"} size="sm" onClick={() => setRange("7d")}>7 dias</Button>
+          <Button variant={range === "30d" ? "default" : "outline"} size="sm" onClick={() => setRange("30d")}>30 dias</Button>
         </div>
       </header>
 
@@ -88,6 +106,7 @@ function DashboardPage() {
         <KpiCard label="Técnicos ativos" value={technicians?.length ?? 0} icon={Users} tone="neutral" />
         <KpiCard label="Críticos" value={counts.critical} icon={AlertTriangle} tone="destructive" />
       </div>
+
 
       {/* Charts row */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
