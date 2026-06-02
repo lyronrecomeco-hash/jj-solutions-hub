@@ -190,6 +190,45 @@ function SignupPage() {
   );
 }
 
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function formatCpf(value: string) {
+  const d = onlyDigits(value).slice(0, 11);
+  return d.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+
+function formatCep(value: string) {
+  const d = onlyDigits(value).slice(0, 8);
+  return d.replace(/(\d{5})(\d)/, "$1-$2");
+}
+
+function formatPhone(value: string) {
+  const d = onlyDigits(value).slice(0, 11);
+  if (d.length <= 10) return d.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d)/, "$1-$2");
+  return d.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2");
+}
+
+function isAdult(date: string) {
+  const birth = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(birth.getTime())) return false;
+  const limit = new Date();
+  limit.setFullYear(limit.getFullYear() - 18);
+  return birth <= limit;
+}
+
+function isValidCpf(value: string) {
+  const cpf = onlyDigits(value);
+  if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+  const calc = (base: number) => {
+    const sum = cpf.slice(0, base - 1).split("").reduce((acc, n, i) => acc + Number(n) * (base - i), 0);
+    const mod = (sum * 10) % 11;
+    return mod === 10 ? 0 : mod;
+  };
+  return calc(10) === Number(cpf[9]) && calc(11) === Number(cpf[10]);
+}
+
 function StepBar({ step }: { step: Step }) {
   const items = [
     { n: 1, label: "Dados pessoais" },
@@ -197,17 +236,17 @@ function StepBar({ step }: { step: Step }) {
     { n: 3, label: "Perfil profissional" },
   ];
   return (
-    <ol className="flex items-center gap-3">
+    <ol className="grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-3">
       {items.map((it, i) => {
         const active = step === it.n;
         const done = step > it.n;
         return (
-          <li key={it.n} className="flex flex-1 items-center gap-3">
+          <li key={it.n} className="relative flex min-w-0 flex-col items-center gap-1 rounded-lg border border-border bg-surface-muted/40 px-1.5 py-2 text-center sm:flex-1 sm:flex-row sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0 sm:text-left">
             <div className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-[12px] font-semibold ${done ? "bg-success text-success-foreground" : active ? "bg-primary text-primary-foreground" : "bg-surface-muted text-muted-foreground border border-border"}`}>
               {done ? <CheckCircle2 className="h-4 w-4" /> : it.n}
             </div>
-            <span className={`text-xs font-medium ${active || done ? "text-foreground" : "text-muted-foreground"}`}>{it.label}</span>
-            {i < items.length - 1 && <div className={`mx-2 h-px flex-1 ${done ? "bg-success" : "bg-border"}`} />}
+            <span className={`text-[10px] font-medium leading-tight sm:text-xs ${active || done ? "text-foreground" : "text-muted-foreground"}`}>{it.label}</span>
+            {i < items.length - 1 && <div className={`mx-2 hidden h-px flex-1 sm:block ${done ? "bg-success" : "bg-border"}`} />}
           </li>
         );
       })}
@@ -215,11 +254,11 @@ function StepBar({ step }: { step: Step }) {
   );
 }
 
-function F({ label, v, on, type = "text", placeholder, required }: { label: string; v: string; on: (v: string) => void; type?: string; placeholder?: string; required?: boolean }) {
+function F({ label, v, on, type = "text", placeholder, required, inputMode }: { label: string; v: string; on: (v: string) => void; type?: string; placeholder?: string; required?: boolean; inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"] }) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs">{label}</Label>
-      <Input type={type} value={v} onChange={(e) => on(e.target.value)} placeholder={placeholder} required={required} className="h-10 border-border" />
+      <Input type={type} value={v} onChange={(e) => on(e.target.value)} placeholder={placeholder} required={required} inputMode={inputMode} className="h-11 border-border text-sm placeholder:text-muted-foreground/45" />
     </div>
   );
 }
