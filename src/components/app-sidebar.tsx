@@ -36,6 +36,9 @@ const customerItems: NavItem[] = [
 
 const analysisItems: NavItem[] = [
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
+];
+
+const communicationItems: NavItem[] = [
   { title: "Mensagens", url: "/mensagens", icon: MessageSquare },
 ];
 
@@ -87,6 +90,7 @@ export function AppSidebar() {
         {!isStaff && renderGroup("Meu Espaço", techSelfItems)}
         {isStaff && renderGroup("Gestão de Técnicos", techManagementItems)}
         {isStaff && renderGroup("Clientes", customerItems)}
+        {isStaff && renderGroup("Comunicação", communicationItems)}
         {isStaff && renderGroup("Análise", analysisItems)}
         {isAdmin && renderGroup("Sistema", systemItems)}
       </SidebarContent>
