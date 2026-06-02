@@ -4,7 +4,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Plus, Search, Ticket, AlertTriangle, Clock, CheckCircle2, Filter, Loader2, ArrowRight,
   Image as ImageIcon, LayoutList, KanbanSquare, MoreHorizontal, UserPlus, ArrowRightCircle,
-  CheckCircle, XCircle, ExternalLink,
+  CheckCircle, XCircle, ExternalLink, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -68,6 +68,24 @@ const PRIORITY: Record<Ticket["priority"], { label: string; cls: string; dot: st
   medium:   { label: "Média",   cls: "border-info/30 bg-info/10 text-info", dot: "bg-info" },
   low:      { label: "Baixa",   cls: "border-border bg-muted text-muted-foreground", dot: "bg-muted-foreground/60" },
 };
+
+const TICKET_SELECT = "id, ticket_number, title, description, status, priority, client_id, contact_name, contact_phone, assigned_to, created_at, deadline";
+
+async function hydrateTickets(rows: any[]): Promise<Ticket[]> {
+  const clientIds = [...new Set(rows.map((r) => r.client_id).filter(Boolean))];
+  const assigneeIds = [...new Set(rows.map((r) => r.assigned_to).filter(Boolean))];
+  const [clientsRes, profilesRes] = await Promise.all([
+    clientIds.length ? supabase.from("clients").select("id, company").in("id", clientIds) : Promise.resolve({ data: [] }),
+    assigneeIds.length ? supabase.from("profiles").select("id, full_name").in("id", assigneeIds) : Promise.resolve({ data: [] }),
+  ]);
+  const clients = new Map((clientsRes.data ?? []).map((c: any) => [c.id, { company: c.company }]));
+  const profiles = new Map((profilesRes.data ?? []).map((p: any) => [p.id, { full_name: p.full_name }]));
+  return rows.map((r) => ({
+    ...r,
+    clients: r.client_id ? clients.get(r.client_id) ?? null : null,
+    profiles: r.assigned_to ? profiles.get(r.assigned_to) ?? null : null,
+  })) as Ticket[];
+}
 
 function TicketsPage() {
   const qc = useQueryClient();
