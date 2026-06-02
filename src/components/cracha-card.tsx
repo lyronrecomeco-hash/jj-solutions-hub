@@ -25,8 +25,7 @@ interface Props {
 
 /**
  * Premium vertical employee badge — 60×95mm proportion.
- * Used both for download (html2canvas → PNG) and inline preview.
- * Uses sRGB hex colors only so html2canvas can rasterize it correctly.
+ * Uses sRGB hex colors only so the rasterizer can render it correctly.
  */
 export const CrachaCard = forwardRef<HTMLDivElement, Props>(({ tech, className }, ref) => {
   const initials = (tech.full_name || "JJ")
@@ -36,8 +35,8 @@ export const CrachaCard = forwardRef<HTMLDivElement, Props>(({ tech, className }
   return (
     <div
       ref={ref}
-      className={`relative w-[320px] overflow-hidden rounded-[20px] bg-white shadow-2xl ring-1 ring-black/10 ${className ?? ""}`}
-      style={{ aspectRatio: "60 / 95", fontFamily: "Inter, system-ui, sans-serif" }}
+      className={`relative w-[300px] overflow-hidden rounded-[20px] bg-white shadow-2xl ring-1 ring-black/10 ${className ?? ""}`}
+      style={{ aspectRatio: "60 / 95", fontFamily: "Inter, system-ui, sans-serif", color: "#0f172a" }}
     >
       {/* Lanyard hole */}
       <div
@@ -45,7 +44,7 @@ export const CrachaCard = forwardRef<HTMLDivElement, Props>(({ tech, className }
         style={{ background: "#f1f5f9", border: "1px solid #cbd5e1" }}
       />
 
-      {/* Top brand band — clean solid gradient, no pattern */}
+      {/* Top brand band */}
       <div
         className="relative px-4 pb-3 pt-6 text-white"
         style={{
@@ -53,8 +52,15 @@ export const CrachaCard = forwardRef<HTMLDivElement, Props>(({ tech, className }
           background: "linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 60%, #0f172a 100%)",
         }}
       >
-        <JJLogo />
-        {/* Soft accent glow */}
+        <div className="flex items-center justify-between">
+          <JJLogo />
+          <span
+            className="rounded-full px-2 py-0.5 text-[8px] font-bold tracking-[0.15em] text-white"
+            style={{ background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.35)" }}
+          >
+            SERVICE DESK
+          </span>
+        </div>
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-full"
           style={{
@@ -81,11 +87,23 @@ export const CrachaCard = forwardRef<HTMLDivElement, Props>(({ tech, className }
             </div>
           )}
         </div>
+        {/* Online dot indicator */}
+        <span
+          className="absolute"
+          style={{
+            bottom: -6, left: "calc(50% + 28px)",
+            width: 14, height: 14, borderRadius: 9999,
+            background: "#22c55e", border: "3px solid #ffffff",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+          }}
+        />
       </div>
 
       {/* Body */}
-      <div className="px-4 pb-4 pt-16 text-center" style={{ color: "#0f172a" }}>
-        <div className="text-[16px] font-bold leading-tight">{tech.full_name}</div>
+      <div className="px-4 pb-4 pt-16 text-center">
+        <div className="text-[16px] font-bold leading-tight" style={{ color: "#0f172a" }}>
+          {tech.full_name}
+        </div>
         <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.16em]" style={{ color: "#64748b" }}>
           JJ Informática · Soluções em Tecnologia
         </div>
@@ -93,7 +111,10 @@ export const CrachaCard = forwardRef<HTMLDivElement, Props>(({ tech, className }
         <div className="mt-3 flex justify-center">
           <span
             className="rounded-full px-3 py-0.5 text-[9px] font-bold tracking-wider text-white"
-            style={{ background: "linear-gradient(135deg, #2563eb, #1e3a8a)", boxShadow: "0 2px 6px rgba(30,58,138,0.35)" }}
+            style={{
+              background: "linear-gradient(135deg, #2563eb, #1e3a8a)",
+              boxShadow: "0 2px 6px rgba(30,58,138,0.35)",
+            }}
           >
             {empLabel[tech.employment_type]}
           </span>
@@ -113,11 +134,14 @@ export const CrachaCard = forwardRef<HTMLDivElement, Props>(({ tech, className }
 
         <div className="mt-3 flex justify-center">
           <div className="rounded-md bg-white p-1.5" style={{ border: "1px solid #e2e8f0" }}>
-            <QRCodeSVG value={qrValue} size={74} level="H" />
+            <QRCodeSVG value={qrValue} size={70} level="H" />
           </div>
         </div>
 
-        <div className="mt-2 flex items-center justify-center gap-1 text-[8px] font-semibold uppercase tracking-wider" style={{ color: "#64748b" }}>
+        <div
+          className="mt-2 flex items-center justify-center gap-1 text-[8px] font-semibold uppercase tracking-wider"
+          style={{ color: "#64748b" }}
+        >
           <ShieldCheck className="h-3 w-3" /> Identidade validada
         </div>
       </div>

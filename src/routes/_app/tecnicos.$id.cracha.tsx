@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Download, Loader2 } from "lucide-react";
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
+import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -36,18 +37,18 @@ function BadgePage() {
     if (!el) return;
     setDownloading(true);
     try {
-      // Render at very high resolution for crisp print quality (~600 DPI equivalent).
-      const canvas = await html2canvas(el, {
-        scale: 4,
-        backgroundColor: null,
-        useCORS: true,
-        allowTaint: false,
-        logging: false,
+      const dataUrl = await toPng(el, {
+        pixelRatio: 4,
+        cacheBust: true,
+        backgroundColor: "transparent",
       });
       const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png", 1);
+      link.href = dataUrl;
       link.download = `cracha-${tech?.full_name?.replace(/\s+/g, "-").toLowerCase() ?? id}.png`;
       link.click();
+      toast.success("Crachá baixado");
+    } catch (err: any) {
+      toast.error("Falha ao baixar", { description: err?.message });
     } finally {
       setDownloading(false);
     }
@@ -93,7 +94,7 @@ function BadgePage() {
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button onClick={downloadImage} className="flex-1" disabled={downloading}>
               {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               Baixar imagem para impressão
@@ -101,7 +102,7 @@ function BadgePage() {
             <Button variant="outline" onClick={() => setOpenModal(true)}>Vista 3D</Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Resolução otimizada para impressão (300 DPI) no formato real do crachá (60×95 mm).
+            Imagem PNG em alta resolução (~600 DPI no formato real 60×95 mm).
           </p>
         </div>
       </div>

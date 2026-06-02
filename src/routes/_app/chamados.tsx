@@ -51,7 +51,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const PRIORITY: Record<Ticket["priority"], { label: string; cls: string; dot: string }> = {
   critical: { label: "Crítico", cls: "border-destructive/30 bg-destructive/10 text-destructive", dot: "bg-destructive" },
-  high:     { label: "Alta",    cls: "border-warning/30 bg-warning/15 text-warning-foreground", dot: "bg-warning" },
+  high:     { label: "Alta",    cls: "border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300", dot: "bg-amber-500" },
   medium:   { label: "Média",   cls: "border-info/30 bg-info/10 text-info", dot: "bg-info" },
   low:      { label: "Baixa",   cls: "border-border bg-muted text-muted-foreground", dot: "bg-muted-foreground/60" },
 };
@@ -185,10 +185,10 @@ function TicketRow({ t }: { t: Ticket }) {
 
 function Mini({ label, value, icon: Icon, tone }: { label: string; value: number; icon: any; tone: "info" | "success" | "warning" | "destructive" }) {
   const cls = {
-    info: "text-info bg-info/10",
-    success: "text-success bg-success/10",
-    warning: "text-warning-foreground bg-warning/15",
-    destructive: "text-destructive bg-destructive/10",
+    info: "text-info bg-info/10 dark:bg-info/15",
+    success: "text-success bg-success/10 dark:bg-success/15",
+    warning: "text-amber-600 bg-amber-500/15 dark:text-amber-300 dark:bg-amber-500/15",
+    destructive: "text-destructive bg-destructive/10 dark:bg-destructive/15",
   }[tone];
   return (
     <div className="rounded-xl border border-border bg-surface p-4 shadow-soft">

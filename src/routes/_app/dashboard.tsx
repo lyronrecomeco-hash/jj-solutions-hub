@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   Ticket, Clock, CheckCircle2, CalendarCheck, Users, AlertTriangle,
-  ArrowUpRight, ArrowDownRight, MoreHorizontal, Circle,
+  MoreHorizontal, Circle,
 } from "lucide-react";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -81,12 +81,12 @@ function DashboardPage() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-        <KpiCard label="Chamados abertos" value={counts.open} icon={Ticket} trend={+12} tone="info" />
-        <KpiCard label="Em andamento" value={counts.inProgress} icon={Clock} trend={+4} tone="warning" />
-        <KpiCard label="Resolvidos hoje" value={counts.resolvedToday} icon={CheckCircle2} trend={+8} tone="success" />
-        <KpiCard label="Resolvidos no mês" value={counts.resolvedMonth} icon={CalendarCheck} trend={+22} tone="success" />
-        <KpiCard label="Técnicos ativos" value={technicians?.length ?? 0} icon={Users} trend={0} tone="neutral" />
-        <KpiCard label="Críticos" value={counts.critical} icon={AlertTriangle} trend={-2} tone="destructive" />
+        <KpiCard label="Chamados abertos" value={counts.open} icon={Ticket} tone="info" />
+        <KpiCard label="Em andamento" value={counts.inProgress} icon={Clock} tone="warning" />
+        <KpiCard label="Resolvidos hoje" value={counts.resolvedToday} icon={CheckCircle2} tone="success" />
+        <KpiCard label="Resolvidos no mês" value={counts.resolvedMonth} icon={CalendarCheck} tone="success" />
+        <KpiCard label="Técnicos ativos" value={technicians?.length ?? 0} icon={Users} tone="neutral" />
+        <KpiCard label="Críticos" value={counts.critical} icon={AlertTriangle} tone="destructive" />
       </div>
 
       {/* Charts row */}
@@ -251,15 +251,15 @@ function DashboardPage() {
   );
 }
 
-function KpiCard({ label, value, icon: Icon, trend, tone }: {
-  label: string; value: number | string; icon: any; trend: number;
+function KpiCard({ label, value, icon: Icon, tone }: {
+  label: string; value: number | string; icon: any;
   tone: "info" | "success" | "warning" | "destructive" | "neutral";
 }) {
   const toneClass = {
-    info: "text-info bg-info/10",
-    success: "text-success bg-success/10",
-    warning: "text-warning-foreground bg-warning/15",
-    destructive: "text-destructive bg-destructive/10",
+    info: "text-info bg-info/10 dark:bg-info/15",
+    success: "text-success bg-success/10 dark:bg-success/15",
+    warning: "text-amber-600 bg-amber-500/15 dark:text-amber-300 dark:bg-amber-500/15",
+    destructive: "text-destructive bg-destructive/10 dark:bg-destructive/15",
     neutral: "text-muted-foreground bg-muted",
   }[tone];
 
@@ -270,15 +270,6 @@ function KpiCard({ label, value, icon: Icon, trend, tone }: {
           <span className={cn("grid h-9 w-9 place-items-center rounded-lg", toneClass)}>
             <Icon className="h-4 w-4" />
           </span>
-          {trend !== 0 && (
-            <span className={cn(
-              "inline-flex items-center gap-0.5 text-xs font-medium",
-              trend > 0 ? "text-success" : "text-destructive",
-            )}>
-              {trend > 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-              {Math.abs(trend)}%
-            </span>
-          )}
         </div>
         <div className="mt-3">
           <div className="font-display text-2xl font-semibold tracking-tight">{value}</div>
