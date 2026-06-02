@@ -1,17 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { UserCog, Loader2, UserPlus } from "lucide-react";
+import { UserCog, Loader2, UserPlus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { AssignTechDialog } from "@/components/assign-tech-dialog";
 
 export const Route = createFileRoute("/_app/atribuicao")({ component: AssignmentPage });
 
 function AssignmentPage() {
+  const qc = useQueryClient();
   const [target, setTarget] = useState<{ id: string; number: string } | null>(null);
+  const [removing, setRemoving] = useState<{ id: string; number: string } | null>(null);
 
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ["unassigned-tickets"],
@@ -24,6 +31,21 @@ function AssignmentPage() {
         .order("created_at", { ascending: false });
       return (data ?? []) as any[];
     },
+  });
+
+  const del = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("tickets").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast.success("Chamado excluído");
+      qc.invalidateQueries({ queryKey: ["unassigned-tickets"] });
+      qc.invalidateQueries({ queryKey: ["tickets-list"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-tickets"] });
+      setRemoving(null);
+    },
+    onError: (e: any) => toast.error("Falha ao excluir", { description: e?.message }),
   });
 
   return (
@@ -56,9 +78,19 @@ function AssignmentPage() {
                   <div className="mt-0.5 truncate text-sm font-semibold">{t.title}</div>
                   <div className="text-xs text-muted-foreground">{t.clients?.company ?? "Sem cliente"}</div>
                 </div>
-                <Button size="sm" onClick={() => setTarget({ id: t.id, number: t.ticket_number })}>
-                  <UserPlus className="h-3.5 w-3.5" /> Atribuir
-                </Button>
+                <div className="flex items-center gap-1.5">
+                  <Button size="sm" onClick={() => setTarget({ id: t.id, number: t.ticket_number })}>
+                    <UserPlus className="h-3.5 w-3.5" /> Atribuir
+                  </Button>
+                  <Button
+                    size="icon" variant="ghost"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    title="Excluir chamado"
+                    onClick={() => setRemoving({ id: t.id, number: t.ticket_number })}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>
@@ -71,7 +103,28 @@ function AssignmentPage() {
         open={!!target}
         onOpenChange={(o) => !o && setTarget(null)}
       />
+
+      <AlertDialog open={!!removing} onOpenChange={(o) => !o && setRemoving(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir chamado?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja realmente excluir o chamado <b>{removing?.number}</b>?
+              Esta ação não pode ser desfeita e o chamado será removido também da tela de Chamados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={del.isPending}
+              onClick={(e) => { e.preventDefault(); if (removing) del.mutate(removing.id); }}
+            >
+              {del.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-
