@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Download, Loader2 } from "lucide-react";
+import { ArrowLeft, Printer, Loader2 } from "lucide-react";
 import { toPng } from "html-to-image";
+import { jsPDF } from "jspdf";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -32,7 +33,7 @@ function BadgePage() {
     })();
   }, [id]);
 
-  async function downloadImage() {
+  async function printPdf() {
     const el = document.getElementById("cracha-print");
     if (!el) return;
     setDownloading(true);
@@ -40,15 +41,16 @@ function BadgePage() {
       const dataUrl = await toPng(el, {
         pixelRatio: 4,
         cacheBust: true,
-        backgroundColor: "transparent",
+        backgroundColor: "#ffffff",
       });
-      const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = `cracha-${tech?.full_name?.replace(/\s+/g, "-").toLowerCase() ?? id}.png`;
-      link.click();
-      toast.success("Crachá baixado");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const badgeW = 60;
+      const badgeH = 95;
+      pdf.addImage(dataUrl, "PNG", (210 - badgeW) / 2, 22, badgeW, badgeH, undefined, "FAST");
+      pdf.save(`cracha-${tech?.full_name?.replace(/\s+/g, "-").toLowerCase() ?? id}.pdf`);
+      toast.success("PDF de impressão gerado");
     } catch (err: any) {
-      toast.error("Falha ao baixar", { description: err?.message });
+      toast.error("Falha ao imprimir", { description: err?.message });
     } finally {
       setDownloading(false);
     }
@@ -95,14 +97,14 @@ function BadgePage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button onClick={downloadImage} className="flex-1" disabled={downloading}>
-              {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              Baixar imagem para impressão
+            <Button onClick={printPdf} className="flex-1" disabled={downloading}>
+              {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+              IMPRIMIR
             </Button>
             <Button variant="outline" onClick={() => setOpenModal(true)}>Vista 3D</Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Imagem PNG em alta resolução (~600 DPI no formato real 60×95 mm).
+            PDF A4 com o crachá em alta resolução no formato real 60×95 mm.
           </p>
         </div>
       </div>
