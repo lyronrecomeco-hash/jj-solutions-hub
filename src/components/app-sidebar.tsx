@@ -1,7 +1,7 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard, Ticket, Users, Building2, BarChart3, MessageSquare,
-  Settings, ScrollText, LogOut, IdCard, ClipboardList, UserCog,
+  Settings, ScrollText, LogOut, IdCard, ClipboardList, UserCog, ShieldCheck,
 } from "lucide-react";
 
 import {
@@ -42,6 +42,7 @@ const communicationItems: NavItem[] = [
 ];
 
 const systemItems: NavItem[] = [
+  { title: "Administradores", url: "/administradores", icon: ShieldCheck },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
   { title: "Logs", url: "/logs", icon: ScrollText },
 ];
