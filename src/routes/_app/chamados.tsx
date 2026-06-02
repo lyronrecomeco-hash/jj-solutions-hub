@@ -98,13 +98,15 @@ function TicketsPage() {
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ["tickets-list"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("tickets")
-        .select("id, ticket_number, title, description, status, priority, client_id, contact_name, contact_phone, assigned_to, created_at, deadline, clients(company), profiles:assigned_to(full_name)")
+        .select(TICKET_SELECT)
         .order("created_at", { ascending: false })
         .limit(200);
-      return (data ?? []) as unknown as Ticket[];
+      if (error) throw new Error(error.message);
+      return hydrateTickets(data ?? []);
     },
+    staleTime: 30_000,
   });
 
   // Realtime: refetch on any ticket change
@@ -173,7 +175,7 @@ function TicketsPage() {
               </TabsList>
             </Tabs>
           )}
-          <div className="relative w-64">
+          <div className="relative w-full sm:w-64">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar chamado…" className="h-9 pl-9 bg-surface-muted" />
           </div>
